@@ -1,7 +1,0 @@
-{
-  "parent": "minecraft:item/handheld",
-  "textures": {
-    "layer0": "minecraft:item/wooden_sword",
-    "layer1": "baileys_enchantments:item/resonance_aura"
-  }
-}
