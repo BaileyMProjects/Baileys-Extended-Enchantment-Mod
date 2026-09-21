@@ -3,7 +3,7 @@ package com.bailey.enchantments.menu;
 import com.bailey.enchantments.BaileysEnchantments;
 import com.bailey.enchantments.block.ModBlocks;
 import com.bailey.enchantments.item.ModItems;
-import com.bailey.enchantments.event.SecretRitualEvents;
+import com.bailey.enchantments.event.SecretCeremony;
 import com.bailey.enchantments.util.AncientEnchantContext;
 import com.bailey.enchantments.util.SecretReveal;
 import com.bailey.enchantments.util.EnchantPower;
@@ -866,13 +866,11 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
                 ItemStack prize = stack.copy();
                 stack.setCount(0);
 
+                // The outcome is already decided; what follows is a 1.8s build-up that is
+                // IDENTICAL either way, and only then the result. See SecretCeremony.
                 AncientAnvilMenu.this.access.execute((level, pos) -> {
                     if (level instanceof ServerLevel server) {
-                        if (won != null) {
-                            SecretRitualEvents.playSuccess(server, pos, sp, prize);
-                        } else {
-                            SecretRitualEvents.playFailure(server, pos, sp, prize);
-                        }
+                        SecretCeremony.begin(server, pos, sp, prize, won != null);
                     }
                 });
 

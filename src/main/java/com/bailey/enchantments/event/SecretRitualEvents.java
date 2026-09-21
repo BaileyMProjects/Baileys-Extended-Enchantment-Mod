@@ -5,6 +5,8 @@ import java.util.UUID;
 import com.bailey.enchantments.BaileysEnchantments;
 import com.bailey.enchantments.util.SecretReveal;
 
+import javax.annotation.Nullable;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
@@ -62,7 +64,8 @@ public final class SecretRitualEvents {
      * The title system already does fade-in / hold / fade-out, so the fade is vanilla's, not a
      * custom renderer. Timings are in ticks: 10 in, 30 held, 20 out.
      */
-    public static void playFailure(ServerLevel level, BlockPos pos, ServerPlayer player, ItemStack gear) {
+    public static void playFailure(ServerLevel level, BlockPos pos, @Nullable ServerPlayer player,
+                                   UUID ownerId, ItemStack gear) {
         double cx = pos.getX() + 0.5, cy = pos.getY() + 1.0, cz = pos.getZ() + 0.5;
 
         // A brief gutter of smoke that simply stops. No flourish -- that is the point.
@@ -71,15 +74,20 @@ public final class SecretRitualEvents {
 
         level.playSound(null, pos, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.7F, 0.6F);
 
-        player.connection.send(new ClientboundSetTitlesAnimationPacket(10, 30, 20));
-        player.connection.send(new ClientboundSetTitleTextPacket(
-                Component.translatable("container." + BaileysEnchantments.MODID + ".secret.failed")));
+        // ⚠️ The player can log out during the 1.8s build-up. The ceremony still finishes and
+        // the gear still lands on the anvil — only the title, which needs a live connection,
+        // is skipped. Losing the item because somebody disconnected would be unforgivable.
+        if (player != null) {
+            player.connection.send(new ClientboundSetTitlesAnimationPacket(10, 30, 20));
+            player.connection.send(new ClientboundSetTitleTextPacket(
+                    Component.translatable("container." + BaileysEnchantments.MODID + ".secret.failed")));
+        }
 
         // ⚠️ The gear still exists on a failure — it has merely lost its Ultimate. It is put on
         // the anvil under the same protections as a win, rather than left on the cursor: the
         // menu is about to be force-closed, and vanilla would fling a carried stack at the
         // player's feet. Same place, same rules, win or lose.
-        dropPrize(level, pos, player, gear);
+        dropPrize(level, pos, ownerId, gear);
     }
 
     /**
@@ -88,7 +96,8 @@ public final class SecretRitualEvents {
      * ⚠️ No title on success, deliberately. Bailey: "that wont be necessary for the success if
      * the animation is grand anyways." Words would undercut it.
      */
-    public static void playSuccess(ServerLevel level, BlockPos pos, ServerPlayer player, ItemStack prize) {
+    public static void playSuccess(ServerLevel level, BlockPos pos, @Nullable ServerPlayer player,
+                                   UUID ownerId, ItemStack prize) {
         double cx = pos.getX() + 0.5, cy = pos.getY() + 1.0, cz = pos.getZ() + 0.5;
 
         // ⚠️ SOUND FIRST, AND NOT THE SONIC BOOM.
@@ -129,7 +138,7 @@ public final class SecretRitualEvents {
         level.sendParticles(ParticleTypes.SCULK_SOUL, cx, cy + 1.6, cz, 50, 0.9, 0.5, 0.9, 0.005);
         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, cx, cy + 0.5, cz, 40, 0.6, 0.7, 0.6, 0.35);
 
-        dropPrize(level, pos, player, prize);
+        dropPrize(level, pos, ownerId, prize);
     }
 
     /**
@@ -151,7 +160,7 @@ public final class SecretRitualEvents {
      * <p>⚠️ Gravity is off so it hovers where it can be seen and reached. Vanilla already spins
      * a dropped item, so the "spins above the anvil" is free — no custom renderer.
      */
-    private static void dropPrize(ServerLevel level, BlockPos pos, ServerPlayer player, ItemStack prize) {
+    private static void dropPrize(ServerLevel level, BlockPos pos, UUID ownerId, ItemStack prize) {
         ItemEntity item = new ItemEntity(level,
                 pos.getX() + 0.5, pos.getY() + 1.1, pos.getZ() + 0.5, prize.copy());
 
@@ -160,8 +169,8 @@ public final class SecretRitualEvents {
         item.setInvulnerable(true);
         item.setUnlimitedLifetime();
         item.setPickUpDelay(20);          // a beat to watch it before it can be walked into
-        item.setThrower(player.getUUID());
-        item.getPersistentData().putUUID(OWNER_KEY, player.getUUID());
+        item.setThrower(ownerId);
+        item.getPersistentData().putUUID(OWNER_KEY, ownerId);
 
         level.addFreshEntity(item);
     }

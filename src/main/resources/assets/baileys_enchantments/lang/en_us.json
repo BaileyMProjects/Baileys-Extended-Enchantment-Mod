@@ -20,7 +20,7 @@
   "container.baileys_enchantments.ultimate.cost": "Upgrade Cost: %1$s Levels",
   "container.baileys_enchantments.ultimate.hint": "Gear + Template + Dark",
   "container.baileys_enchantments.secret.hint": "Gear + Template + Scarlet",
-  "container.baileys_enchantments.secret.toggle": "SECRET",
+  "container.baileys_enchantments.secret.toggle": "Secret",
   "container.baileys_enchantments.secret.odds": "%1$s%% chance",
   "container.baileys_enchantments.secret.warning": "Lost either way",
   "container.baileys_enchantments.secret.failed": "Failed...",
