@@ -7,12 +7,51 @@ something shipped broken, it gets written down here.
 
 ---
 
-## [Unreleased]
+## 1.1.0
 
-> ⚠️ **Version number not yet decided.** The source currently says `1.0.2`, but three
-> materially different builds have carried that name during development and none of them were
-> ever published. The next release will be renumbered before it ships so that no two different
-> builds share a version. Nothing below has been released yet.
+The first release since the 1.20.1 port. It adds the Deep Dark expansion, the Secret
+enchantment tier, a reworked enchanting structure, and changes where enchantments come from.
+It also fixes four bugs, two of which were present in the published version.
+
+⚠️ **Read "where boosted levels come from" below before updating.** Nothing is removed from
+items you already own, but how new boosted levels are obtained has changed.
+
+### ✨ Added — the Deep Dark expansion
+
+A parallel progression path built around the Deep Dark, intended to make the Warden fight
+survivable rather than impossible.
+
+- **Corrupted armour set** — Corrupted Helmet, Chestplate, Leggings and Boots, upgraded from
+  diamond via a new **Corrupted Upgrade Smithing Template** found in Ancient City chests. The
+  template can be duplicated like a vanilla one.
+- **Set bonuses for the full set** — immunity to **Darkness**, a movement speed bonus, and
+  heavy damage reduction against Deep Dark sources including the Warden's sonic boom.
+- **Sculkbane** — a damage enchantment that supersedes the Sharpness family rather than
+  stacking with it.
+- **Deepward** — a protection enchantment that supersedes the Protection family. It still
+  allows Feather Falling, exactly as vanilla Protection does.
+- **Shatter** — Sculkbane's Ultimate. **Silence** — Deepward's Ultimate.
+- **Resonance** — the first Secret enchantment, gambled for with Execute.
+- **Scarlet Crystal**, crafted from a **Warden Heart**, and the Secret ritual itself.
+
+### ✨ Added — the reworked enchanting structure
+
+- **Honest level caps.** The tables now offer the levels they can actually produce. A higher
+  "true cap" tier was previously advertised but was unreachable in game; the numbers you see
+  are now the numbers you get. ⚠️ No item lost a level — the caps on gear were always the real
+  ones.
+- **A Remove tab** on the Ancient Anvil, for stripping enchantments back off an item.
+  Ultimates and Secrets cannot be removed — they are bound to the item.
+- ⚠️ **Corrupted bookshelves are now the only thing that powers the Ancient Enchanting Table.**
+  Ordinary bookshelves and sculk no longer contribute. **This is a deliberate break**: an
+  existing Ancient Enchanting Table will read as unpowered until it is surrounded by corrupted
+  bookshelves.
+
+### ⚖️ Changed — balance
+
+- **Protection's boosted cap lowered** from VIII to VII, with over-cap Protection rescaled so a
+  full set lands at 70/75/80% reduction at V/VI/VII rather than overshooting.
+- **The Warden now always drops 1–2 echo shards**, flat, with no Looting scaling.
 
 ### 🐛 Fixed
 
@@ -65,12 +104,11 @@ something shipped broken, it gets written down here.
 - Resonance is now gambled for with **Execute**. As before, you cannot have both.
 - The on-screen warning now reads "Destroys the Ultimate either way."
 
-### 🛡️ Changed — corrupted armor set
+### 📝 Note on the corrupted set
 
-- The corrupted set grants **two** set bonuses: **immunity to Darkness** and a **movement speed
-  bonus** while wearing the full set. A third bonus ("no sculk slowdown") was planned and
-  dropped — sculk has never slowed players down in the first place, so there was nothing to
-  remove.
+- The full set grants **two** bonuses: Darkness immunity and a movement speed bonus, on top of
+  its Deep Dark damage reduction. A third, "no sculk slowdown", was planned and dropped — sculk
+  has never slowed players down in vanilla, so there was nothing to remove.
 
 ### ✨ Changed — how you get enchantments
 
@@ -101,8 +139,9 @@ without touching where the powerful ones come from.
 
 ## Released
 
-> ⚠️ It is not currently recorded which of `1.0.0` or `1.0.1` is the version live on CurseForge.
-> This section will be corrected once that is confirmed.
+> ⚠️ Which of these was the last published to CurseForge is not recorded. It does not affect
+> 1.1.0, which is above both and clear of the `1.0.2` number that was used during development
+> but never released.
 
 ### 1.0.1
 
