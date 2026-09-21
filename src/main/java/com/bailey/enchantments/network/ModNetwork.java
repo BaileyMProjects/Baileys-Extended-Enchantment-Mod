@@ -7,6 +7,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.network.NetworkRegistry;
+import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class ModNetwork {
@@ -27,6 +28,17 @@ public final class ModNetwork {
                 RenameAnvilPayload::encode,
                 RenameAnvilPayload::decode,
                 RenameAnvilPayload::handle);
+
+        CHANNEL.registerMessage(id++,
+                SecretRevealPayload.class,
+                SecretRevealPayload::encode,
+                SecretRevealPayload::decode,
+                SecretRevealPayload::handle);
+    }
+
+    /** Server to one client. Used for the Secret-name reveal flag. */
+    public static void sendToPlayer(Object msg, ServerPlayer player) {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), msg);
     }
 
     public static void handleRename(RenameAnvilPayload payload, ServerPlayer player) {

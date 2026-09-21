@@ -23,6 +23,7 @@
   "container.baileys_enchantments.secret.toggle": "SECRET",
   "container.baileys_enchantments.secret.odds": "%1$s%% chance",
   "container.baileys_enchantments.secret.warning": "Lost either way",
+  "container.baileys_enchantments.secret.failed": "Failed...",
   "container.baileys_enchantments.disenchant.hint": "Place an enchanted item to strip one",
   "container.baileys_enchantments.disenchant.cost": "Remove %1$s — %2$s Levels",
 

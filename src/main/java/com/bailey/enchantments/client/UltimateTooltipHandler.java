@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.bailey.enchantments.BaileysEnchantments;
+import com.bailey.enchantments.util.SecretReveal;
 import com.bailey.enchantments.util.Secrets;
 import com.bailey.enchantments.util.Ultimates;
 
@@ -32,10 +33,13 @@ public class UltimateTooltipHandler {
     // "cool text effect" Bailey asked for on 2026-08-09, and what makes the tier read as
     // secret at a glance rather than as just another colour of Ultimate.
     //
-    // ⚠️ SHIMMER, NOT OBFUSCATION. The obvious way to make text look mysterious in Minecraft
-    // is Style.withObfuscated, and it is wrong here: it scrambles the glyphs permanently, so
-    // a player could never read which Secret they actually won. The name has to stay
-    // legible — the effect is on the COLOUR, never on the characters.
+    // ⚠️ SHIMMER once the name is KNOWN; obfuscated while it is not. Updated 2026-09-21.
+    //
+    // This used to read "shimmer, NOT obfuscation", because obfuscation scrambles forever and
+    // a player could never read which Secret they had won. Bailey then added the missing half:
+    // the scramble lifts permanently once you have ATTEMPTED a Secret in that world. So the
+    // name is unreadable only while genuinely unknown, and the old objection no longer holds.
+    // See secretName() below and Brain/Decisions/The Secret ritual.md.
     private static final int SECRET_RED = 0xE0293A;
     private static final int SECRET_RED_BRIGHT = 0xFF8080;
 
@@ -60,7 +64,7 @@ public class UltimateTooltipHandler {
             for (int i = 0; i < tooltip.size(); i++) {
                 if (tooltip.get(i).getString().equals(plainName)) {
                     tooltip.set(i, Secrets.isSecret(ench)
-                            ? shimmer(Component.translatable(translationKey).getString())
+                            ? secretName(translationKey)
                             : Component.translatable(translationKey).withStyle(ULTIMATE_STYLE));
                     tooltip.add(i + 1, Component.translatable(translationKey + ".desc").withStyle(DESC_STYLE));
                     break;
@@ -68,6 +72,30 @@ public class UltimateTooltipHandler {
             }
         }
     }
+
+    /**
+     * A Secret's name on an item tooltip.
+     *
+     * <p>⚠️ <b>Scrambled until this player has attempted a Secret in this world</b>, then the
+     * real name from then on — Bailey, 2026-09-21: <i>"that scramble should be used on the
+     * preview for the item. So it shows the red enchantment but the text is scrambled."</i>
+     *
+     * <p>⚠️ This reinstates something that was deliberately REMOVED on 2026-09-19, and the
+     * reversal is sound. Obfuscation was taken out then because it scrambles forever, so a
+     * player could never read which Secret they had won. The reveal-on-attempt rule answers
+     * exactly that: it is unreadable only while genuinely unknown. Do not "restore" the old
+     * behaviour on the strength of that older comment.
+     *
+     * <p>The colour is red either way. Only legibility changes, never identity.
+     */
+    private static Component secretName(String translationKey) {
+        if (!SecretReveal.isRevealedClient()) {
+            return Component.translatable(translationKey)
+                    .withStyle(s -> s.withColor(SECRET_RED).withObfuscated(true));
+        }
+        return shimmer(Component.translatable(translationKey).getString());
+    }
+
     // Build the name one character at a time, each with its own colour, so a bright band
     // travels along the word.
     //

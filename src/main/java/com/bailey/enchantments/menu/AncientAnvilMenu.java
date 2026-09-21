@@ -3,7 +3,9 @@ package com.bailey.enchantments.menu;
 import com.bailey.enchantments.BaileysEnchantments;
 import com.bailey.enchantments.block.ModBlocks;
 import com.bailey.enchantments.item.ModItems;
+import com.bailey.enchantments.event.SecretRitualEvents;
 import com.bailey.enchantments.util.AncientEnchantContext;
+import com.bailey.enchantments.util.SecretReveal;
 import com.bailey.enchantments.util.EnchantPower;
 import com.bailey.enchantments.util.DeepDarkBalance;
 import com.bailey.enchantments.util.OverCaps;
@@ -17,6 +19,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -800,7 +804,7 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
             //
             // The stack handed to us is the one the player is walking away with, so mutating it
             // here is what turns a failed preview into a won item.
-            if (AncientAnvilMenu.this.isSecretMode() && !player.level().isClientSide()) {
+            if (AncientAnvilMenu.this.isSecretMode() && player instanceof ServerPlayer sp) {
                 Enchantment won = AncientAnvilMenu.this.rollSecret(player);
                 if (won != null) {
                     Map<Enchantment, Integer> enchants =
@@ -808,10 +812,34 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
                     enchants.put(won, 1);
                     EnchantmentHelper.setEnchantments(enchants, stack);
                 }
-                AncientAnvilMenu.this.access.execute((level, pos) -> level.playSound(
-                        null, pos,
-                        won != null ? SoundEvents.WARDEN_SONIC_BOOM : SoundEvents.WARDEN_HEARTBEAT,
-                        SoundSource.BLOCKS, 1.0F, won != null ? 1.0F : 0.8F));
+
+                // ATTEMPTING is what reveals the Secret's name -- win or lose. Losing already
+                // costs an Ultimate and a crystal, which is price enough for a name.
+                // -> Brain/Decisions/Open decisions.md #29
+                SecretReveal.reveal(sp);
+
+                // The player does not walk away with this. It goes onto the anvil as a real,
+                // owner-locked item they have to collect -- Bailey, 2026-09-21: "item is only
+                // yours and you have to pick it up off the table."
+                //
+                // Emptying the taken stack is what moves it from their cursor to the ceremony.
+                ItemStack prize = stack.copy();
+                stack.setCount(0);
+
+                AncientAnvilMenu.this.access.execute((level, pos) -> {
+                    if (level instanceof ServerLevel server) {
+                        if (won != null) {
+                            SecretRitualEvents.playSuccess(server, pos, sp, prize);
+                        } else {
+                            SecretRitualEvents.playFailure(server, pos, sp, prize);
+                        }
+                    }
+                });
+
+                // Eject them to watch it. ⚠️ Queued rather than called inline: we are in the
+                // middle of the container's own take handling, and closing a menu from inside
+                // that is asking for trouble. This runs at the end of the tick instead.
+                sp.getServer().execute(sp::closeContainer);
             }
 
             AncientAnvilMenu.this.ultimateInputs.setItem(0, ItemStack.EMPTY);

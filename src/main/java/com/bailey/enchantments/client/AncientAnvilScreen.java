@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.bailey.enchantments.BaileysEnchantments;
 import com.bailey.enchantments.menu.AncientAnvilMenu;
+import com.bailey.enchantments.util.SecretReveal;
 import com.bailey.enchantments.network.ModNetwork;
 import com.bailey.enchantments.network.RenameAnvilPayload;
 
@@ -34,15 +35,14 @@ public class AncientAnvilScreen extends AbstractContainerScreen<AncientAnvilMenu
     private static final int TAB_H = 18;
 
 
-    // The Secret toggle, in panel-local coordinates. Sits in the strip between the ritual
-    // slots (y=48..66) and the player inventory (y=84), which is empty on this tab.
-    // ⚠️ mouseClicked converts these with leftPos/topPos; renderLabels draws them as-is,
-    // because it runs inside the panel-translated matrix. Do not add the offsets twice.
     // The Secret toggle and its two text lines, all inside the upper work area.
     //
     // ⚠️ THIS BLOCK IS HEMMED IN ON BOTH SIDES AND THE NUMBERS ARE NOT FREE.
     // Above: the hint/cost line sits at y=18. Below: the slot wells begin at y=47.
     // That leaves exactly one band, y29..45, for the whole Secret control.
+    //
+    // ⚠️ mouseClicked converts these with leftPos/topPos; renderLabels draws them as-is,
+    // because it runs inside the panel-translated matrix. Do not add the offsets twice.
     //
     // It used to be at y=68, which put it straight through the divider at y69 and the
     // "Inventory" label at y72 — Bailey, 2026-09-21: "the bar is not even fully in the panel
@@ -62,7 +62,7 @@ public class AncientAnvilScreen extends AbstractContainerScreen<AncientAnvilMenu
     // The Secret tier is red, against the Ultimates' pink 0xFF85C2 — Bailey, 2026-08-09:
     // "it should be like a red themed enchantment rather than pink".
     // Chrome drawn in code has to match the panel texture, which is deepslate, not vanilla
-    // grey. These mirror GuiGen's palette in tools/GuiGen.java � change both together.
+    // grey. These mirror GuiGen's palette in tools/GuiGen.java -- change both together.
     private static final int PANEL_OUTLINE = 0xFF0E1014;
     private static final int PANEL_BASE    = 0xFF474E59;
     private static final int PANEL_LO      = 0xFF343A42;
@@ -299,28 +299,71 @@ public class AncientAnvilScreen extends AbstractContainerScreen<AncientAnvilMenu
     //
     // The percentage is read from the menu, which reads DeepDarkBalance, so the number shown
     // and the number rolled cannot drift apart.
+    /**
+     * The Secret control: a button, its odds, and the warning.
+     *
+     * <p>Bailey, 2026-09-21: <i>"the secret text should be smaller and red permanently. When
+     * selected it should maybe be highlighted differently from making it all red as that makes
+     * it hard to read."</i> Three things follow from that:
+     *
+     * <ul>
+     *   <li><b>Red always</b>, not only when armed. The tier has one colour and it does not
+     *       depend on UI state.
+     *   <li><b>Selected is shown by the BUTTON, not by the text.</b> Turning every line red was
+     *       what hurt legibility, so armed now means a lit border and a brighter fill behind an
+     *       unchanged label.
+     *   <li><b>Smaller.</b> The vanilla font has one size, so the supporting lines are drawn at
+     *       half scale through the pose stack — see {@link #drawSmall}.
+     * </ul>
+     */
     private void drawSecretToggle(GuiGraphics guiGraphics) {
         boolean on = this.menu.isSecretMode();
 
-        guiGraphics.fill(SECRET_TOGGLE_X, SECRET_TOGGLE_Y,
-                SECRET_TOGGLE_X + SECRET_TOGGLE_W, SECRET_TOGGLE_Y + SECRET_TOGGLE_H, 0xFF000000);
-        guiGraphics.fill(SECRET_TOGGLE_X + 1, SECRET_TOGGLE_Y + 1,
-                SECRET_TOGGLE_X + SECRET_TOGGLE_W - 1, SECRET_TOGGLE_Y + SECRET_TOGGLE_H - 1,
-                on ? SECRET_RED_DIM : 0xFF555555);
+        int border = on ? SECRET_RED : PANEL_OUTLINE;
+        int fill = on ? SECRET_RED_DIM : PANEL_LO;
 
-        Component label = Component.translatable("container." + BaileysEnchantments.MODID + ".secret.toggle");
+        guiGraphics.fill(SECRET_TOGGLE_X, SECRET_TOGGLE_Y,
+                SECRET_TOGGLE_X + SECRET_TOGGLE_W, SECRET_TOGGLE_Y + SECRET_TOGGLE_H, border);
+        guiGraphics.fill(SECRET_TOGGLE_X + 1, SECRET_TOGGLE_Y + 1,
+                SECRET_TOGGLE_X + SECRET_TOGGLE_W - 1, SECRET_TOGGLE_Y + SECRET_TOGGLE_H - 1, fill);
+
+        // The word itself is scrambled until this player has attempted a Secret in this world.
+        Component label = secretWord();
         int labelX = SECRET_TOGGLE_X + (SECRET_TOGGLE_W - this.font.width(label)) / 2;
-        guiGraphics.drawString(this.font, label, labelX, SECRET_TOGGLE_Y + 2,
-                on ? SECRET_RED : 0xFFBBBBBB, false);
+        guiGraphics.drawString(this.font, label, labelX, SECRET_TOGGLE_Y + 2, SECRET_RED, false);
 
         if (!on) return;
 
-        Component odds = Component.translatable(
-                "container." + BaileysEnchantments.MODID + ".secret.odds",
-                AncientAnvilMenu.getSecretChancePercent());
-        Component warn = Component.translatable("container." + BaileysEnchantments.MODID + ".secret.warning");
-        guiGraphics.drawString(this.font, odds, SECRET_TEXT_X, SECRET_ODDS_Y, SECRET_RED, false);
-        guiGraphics.drawString(this.font, warn, SECRET_TEXT_X, SECRET_WARN_Y, SECRET_RED, false);
+        drawSmall(guiGraphics, Component.translatable(
+                        "container." + BaileysEnchantments.MODID + ".secret.odds",
+                        AncientAnvilMenu.getSecretChancePercent()),
+                SECRET_TEXT_X, SECRET_ODDS_Y);
+        drawSmall(guiGraphics, Component.translatable(
+                        "container." + BaileysEnchantments.MODID + ".secret.warning"),
+                SECRET_TEXT_X, SECRET_WARN_Y);
+    }
+
+    /**
+     * The word SECRET, scrambled until earned.
+     *
+     * ⚠️ Vanilla's OBFUSCATED style renders random glyphs of the SAME WIDTH every frame, which
+     * is why the button does not jitter as it scrambles. Once revealed the style is dropped
+     * entirely and the real word shows from then on, in this world, for this player.
+     */
+    private Component secretWord() {
+        Component word = Component.translatable("container." + BaileysEnchantments.MODID + ".secret.toggle");
+        return SecretReveal.isRevealedClient() ? word : word.copy().withStyle(ChatFormatting.OBFUSCATED);
+    }
+
+    /**
+     * Draw at half scale. The font has one size, so "smaller" is a transform: scale the pose
+     * stack by 0.5 and double the coordinates so the text lands where it was asked for.
+     */
+    private void drawSmall(GuiGraphics guiGraphics, Component text, int x, int y) {
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().scale(0.5F, 0.5F, 1.0F);
+        guiGraphics.drawString(this.font, text, x * 2, y * 2, SECRET_RED, false);
+        guiGraphics.pose().popPose();
     }
 
     @Override
