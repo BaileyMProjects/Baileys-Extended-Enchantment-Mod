@@ -4,6 +4,7 @@ import com.bailey.enchantments.BaileysEnchantments;
 import com.bailey.enchantments.util.DeepDarkBalance;
 import com.bailey.enchantments.util.EnchantCommandOverride;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.MobType;
 import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ItemStack;
@@ -33,8 +34,31 @@ public class ModEnchantments {
             EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND,
             EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
 
+    /**
+     * The flat damage an Ultimate on the Sharpness lineage carries, matching what Sharpness VII
+     * would give.
+     *
+     * <p>⚠️ <b>This exists because the ritual DESTROYS the maxed Sharpness it upgrades from.</b>
+     * Bailey, 2026-09-21: <i>"the ultimate and secret ability have no damage buff like sharpness
+     * so you should change that to match what sharpness 7 would be."</i> He is right, and it was
+     * a real hole: a sword going from Sharpness VI to Execute LOST 3.5 flat damage and gained
+     * only a 20% multiplier, so the mod's most expensive upgrade could be a raw downgrade.
+     *
+     * <p>Derived from vanilla, not guessed — {@code DamageEnchantment.getDamageBonus} for the
+     * Sharpness type is {@code 1.0F + max(0, level - 1) * 0.5F}, verified from the 1.20.1
+     * bytecode. Level 7 gives {@code 1.0 + 6 * 0.5 = 4.0}.
+     *
+     * <p>⚠️ VII, one above the boosted Sharpness cap of VI in {@link com.bailey.enchantments.util.OverCaps},
+     * so the upgrade is a genuine step up rather than a sidestep. If that cap ever moves, this
+     * should move with it.
+     */
+    private static final float SHARPNESS_VII_DAMAGE = 4.0F;
+
     public static final RegistryObject<Enchantment> EXECUTE = ENCHANTMENTS.register("execute",
-            () -> new UltimateEnchantment(Enchantment.Rarity.VERY_RARE, EnchantmentCategory.WEAPON, EquipmentSlot.MAINHAND));
+            () -> new UltimateEnchantment(Enchantment.Rarity.VERY_RARE, EnchantmentCategory.WEAPON, EquipmentSlot.MAINHAND) {
+                @Override
+                public float getDamageBonus(int level, MobType type) { return SHARPNESS_VII_DAMAGE; }
+            });
 
     public static final RegistryObject<Enchantment> OBLITERATE = ENCHANTMENTS.register("obliterate",
             () -> new UltimateEnchantment(Enchantment.Rarity.VERY_RARE, EnchantmentCategory.BOW, EquipmentSlot.MAINHAND));
@@ -153,7 +177,12 @@ public class ModEnchantments {
     // Behaviour lives in event/SecretEnchantmentEvents.java.
     // -------------------------------------------------------------------------
     public static final RegistryObject<Enchantment> RESONANCE = ENCHANTMENTS.register("resonance",
-            () -> new SecretEnchantment(EnchantmentCategory.WEAPON, EquipmentSlot.MAINHAND));
+            () -> new SecretEnchantment(EnchantmentCategory.WEAPON, EquipmentSlot.MAINHAND) {
+                // Resonance is gambled FROM Execute and keeps its perks, so it keeps its damage
+                // too -- anything less would make winning the gamble a damage loss.
+                @Override
+                public float getDamageBonus(int level, MobType type) { return SHARPNESS_VII_DAMAGE; }
+            });
 
     // -------------------------------------------------------------------------
     // Base class for simple non-ultimate enchantments
