@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "minecraft:item/wooden_sword"
+  },
+  "overrides": [
+    {
+      "predicate": { "baileys_enchantments:resonance": 1 },
+      "model": "baileys_enchantments:item/wooden_sword_resonance"
+    }
+  ]
+}
