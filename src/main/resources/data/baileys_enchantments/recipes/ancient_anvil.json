@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "EHE",
+    "SAS",
+    "SSS"
+  ],
+  "key": {
+    "E": {"item": "minecraft:echo_shard"},
+    "H": {"item": "baileys_enchantments:warden_heart"},
+    "S": {"item": "minecraft:sculk"},
+    "A": {"item": "minecraft:anvil"}
+  },
+  "result": {
+    "item": "baileys_enchantments:ancient_anvil",
+    "count": 1
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "description": { "translate": "enchantment.baileys_enchantments.frostbite" },
+  "supported_items": "#minecraft:enchantable/sharp_weapon",
+  "primary_items": "#minecraft:swords",
+  "weight": 5,
+  "max_level": 2,
+  "min_cost": 10,
+  "max_cost": 60,
+  "curse": false
+}

@@ -1,0 +1,103 @@
+# Changelog
+
+All notable changes to Bailey's Extended Enchantment Mod.
+
+This changelog names bugs as well as features, including bugs you may never have noticed. If
+something shipped broken, it gets written down here.
+
+---
+
+## [Unreleased]
+
+> ⚠️ **Version number not yet decided.** The source currently says `1.0.2`, but three
+> materially different builds have carried that name during development and none of them were
+> ever published. The next release will be renumbered before it ships so that no two different
+> builds share a version. Nothing below has been released yet.
+
+### 🐛 Fixed
+
+- **Librarian villagers could sell Ultimate enchantment books.** Villager trades are filtered on
+  a different flag than loot and the enchanting table, and that flag was never set on Ultimates.
+  The books could never actually be applied to anything, so this was a wasted purchase rather
+  than a way to obtain an Ultimate — but it should never have been offered. Ultimates and
+  Secrets now come from the Ancient Anvil and nothing else, with no exceptions.
+- **The Ancient Enchanting Table could roll Curse of Binding and Curse of Vanishing.** The table
+  deliberately accepts "treasure" enchantments, which is how this mod's own enchantments get
+  into its pool; both vanilla curses are treasure enchantments and were riding in alongside
+  them. Curses are now excluded from the table's pool entirely.
+  **This fix is not retroactive** — an item that already picked up a curse from the table keeps
+  it. Nothing about those items is broken; they just have a curse you did not ask for.
+- **Enchantment books for this mod's enchantments generated in chests but could not be used.**
+  World loot has always been able to produce them, and a normal anvil has always refused to
+  apply them, so finding one did nothing. See *Changed* below.
+- **Over-capped items were refused by normal anvils entirely.** A Sharpness VI sword could not
+  be renamed, repaired, or combined. This was a deliberate guard against a real problem — a
+  vanilla anvil silently knocks boosted levels back down to the vanilla maximum — but it was far
+  broader than the problem it was guarding against.
+
+### ⚔️ Changed — Secret enchantments
+
+- **Secret enchantments are now gambled for with an Ultimate, not with a maxed ordinary
+  enchantment.** The Secret tier now sits above the Ultimate tier rather than beside it: you
+  must earn the Ultimate first, and then risk it.
+- **The odds are now 50%**, up from 20%. Both halves moved together — the chance went up
+  because the stake went up. A failed roll destroys the Ultimate, so you have to re-max a base
+  enchantment and re-run the Ultimate ritual before trying again.
+- In practice this means roughly **15 Wardens per Secret instead of 25**, but around **two
+  Ultimates spent** where it previously cost none.
+- Resonance is now gambled for with **Execute**. As before, you cannot have both.
+- The on-screen warning now reads "Destroys the Ultimate either way."
+
+### 🛡️ Changed — corrupted armor set
+
+- The corrupted set grants **two** set bonuses: **immunity to Darkness** and a **movement speed
+  bonus** while wearing the full set. A third bonus ("no sculk slowdown") was planned and
+  dropped — sculk has never slowed players down in the first place, so there was nothing to
+  remove.
+
+### ✨ Changed — how you get enchantments
+
+The Deep Dark gear is meant to make the Deep Dark survivable, and it was gated behind beating
+the Deep Dark first. This release opens up how the non-Ultimate enchantments are obtained,
+without touching where the powerful ones come from.
+
+- **A normal anvil can now apply this mod's enchantments** from an enchanted book. Scaling is
+  still slow, because you have to find the books — but you no longer need an Ancient Anvil to
+  use one at all.
+- **This mod's enchantments still never appear in a normal enchanting table.** That has not
+  changed, and will not.
+- **Boosted "over-cap" levels are preserved by a normal anvil, but never created by one.**
+  A normal anvil can never raise an enchantment above the higher of its normal maximum and the
+  level you already had:
+  - Sharpness VI + Sharpness VI → **VI** (merges, no longer downgraded)
+  - Sharpness VI + Sharpness V → **VI** (your boosted level survives)
+  - Sharpness V + Sharpness V → **V** (over-caps still come only from the Ancient Enchanting Table)
+  - A boosted item can now be renamed and repaired normally.
+- **Librarian trades no longer offer any of this mod's enchantments.** A villager can be
+  re-rolled forever, which would have made "you have to find the books" meaningless. Chest and
+  fishing loot are unchanged and remain the way books are found.
+- **Ultimate and Secret enchantments remain exclusive to the Ancient Anvil.** (Secrets changed in
+  other ways — see above — but not in where they come from.)
+  They cannot be applied, traded for, found, or merged anywhere else.
+
+---
+
+## Released
+
+> ⚠️ It is not currently recorded which of `1.0.0` or `1.0.1` is the version live on CurseForge.
+> This section will be corrected once that is confirmed.
+
+### 1.0.1
+
+Build produced 2026-06-16.
+
+### 1.0.0 — port to Forge 1.20.1
+
+The port from NeoForge 1.21.11 to Forge 1.20.1 (Java 17).
+
+- Ancient Enchanting Table, powered by sculk
+- Ancient Anvil, with both tabs
+- Enchantment distribution: vanilla table gives vanilla enchantments only; the Ancient
+  Enchanting Table gives boosted levels and this mod's enchantments, but no Ultimates; the
+  Ancient Anvil is the only source of Ultimates
+- Homing targets hostile mobs only, with improved close-range steering

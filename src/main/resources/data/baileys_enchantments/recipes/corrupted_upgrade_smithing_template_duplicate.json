@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "DDD",
+    "DTD",
+    "DSD"
+  ],
+  "key": {
+    "D": {"item": "minecraft:diamond"},
+    "T": {"item": "baileys_enchantments:corrupted_upgrade_smithing_template"},
+    "S": {"item": "minecraft:echo_shard"}
+  },
+  "result": {
+    "item": "baileys_enchantments:corrupted_upgrade_smithing_template",
+    "count": 2
+  }
+}

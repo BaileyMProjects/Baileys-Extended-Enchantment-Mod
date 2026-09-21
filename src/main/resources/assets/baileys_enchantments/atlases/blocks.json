@@ -1,0 +1,12 @@
+{
+  "sources": [
+    {
+      "type": "single",
+      "resource": "baileys_enchantments:item/empty_slot_echo_upgrade_template"
+    },
+    {
+      "type": "single",
+      "resource": "baileys_enchantments:item/empty_slot_dark_crystal"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "loader": "forge:composite",
+  "textures": {
+    "particle": "baileys_enchantments:block/ancient_anvil"
+  },
+  "children": {
+    "base": { "parent": "baileys_enchantments:block/ancient_anvil_base" },
+    "glow": { "parent": "baileys_enchantments:block/ancient_anvil_glow" }
+  }
+}

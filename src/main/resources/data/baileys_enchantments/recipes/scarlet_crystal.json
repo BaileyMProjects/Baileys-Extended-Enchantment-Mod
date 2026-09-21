@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {"item": "baileys_enchantments:warden_heart"},
+    {"item": "minecraft:amethyst_shard"},
+    {"item": "minecraft:redstone"}
+  ],
+  "result": {
+    "item": "baileys_enchantments:scarlet_crystal",
+    "count": 1
+  }
+}

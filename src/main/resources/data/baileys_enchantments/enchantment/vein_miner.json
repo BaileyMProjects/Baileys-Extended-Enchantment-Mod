@@ -1,0 +1,10 @@
+{
+  "description": { "translate": "enchantment.baileys_enchantments.vein_miner" },
+  "supported_items": "#minecraft:enchantable/mining",
+  "primary_items": "#minecraft:enchantable/mining",
+  "weight": 2,
+  "max_level": 1,
+  "min_cost": 15,
+  "max_cost": 65,
+  "curse": false
+}

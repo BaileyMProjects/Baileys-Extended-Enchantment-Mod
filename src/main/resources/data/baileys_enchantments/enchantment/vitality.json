@@ -1,0 +1,9 @@
+{
+  "description": { "translate": "enchantment.baileys_enchantments.vitality" },
+  "supported_items": "#baileys_enchantments:enchantable/vitality_items",
+  "weight": 3,
+  "max_level": 2,
+  "min_cost": 15,
+  "max_cost": 65,
+  "curse": false
+}

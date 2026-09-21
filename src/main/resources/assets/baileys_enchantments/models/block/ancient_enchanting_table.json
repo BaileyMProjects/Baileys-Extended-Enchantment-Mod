@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/enchanting_table",
+  "textures": {
+    "particle": "baileys_enchantments:block/ancient_enchanting_table_bottom",
+    "bottom": "baileys_enchantments:block/ancient_enchanting_table_bottom",
+    "top": "baileys_enchantments:block/ancient_enchanting_table_top",
+    "side": "baileys_enchantments:block/ancient_enchanting_table_side"
+  }
+}

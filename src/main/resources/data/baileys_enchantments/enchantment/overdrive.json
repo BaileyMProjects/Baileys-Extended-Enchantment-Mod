@@ -1,0 +1,10 @@
+{
+  "description": { "translate": "enchantment.baileys_enchantments.overdrive" },
+  "supported_items": "#minecraft:enchantable/mining",
+  "primary_items": "#minecraft:enchantable/mining",
+  "weight": 1,
+  "max_level": 1,
+  "min_cost": 100,
+  "max_cost": 250,
+  "curse": false
+}

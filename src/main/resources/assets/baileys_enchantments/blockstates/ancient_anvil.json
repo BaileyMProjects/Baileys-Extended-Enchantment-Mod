@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=south": { "model": "baileys_enchantments:block/ancient_anvil" },
+    "facing=west":  { "model": "baileys_enchantments:block/ancient_anvil", "y": 90 },
+    "facing=north": { "model": "baileys_enchantments:block/ancient_anvil", "y": 180 },
+    "facing=east":  { "model": "baileys_enchantments:block/ancient_anvil", "y": 270 }
+  }
+}

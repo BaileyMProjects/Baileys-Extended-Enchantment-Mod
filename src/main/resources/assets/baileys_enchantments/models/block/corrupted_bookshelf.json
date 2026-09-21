@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_column",
+  "textures": {
+    "end": "minecraft:block/sculk",
+    "side": "baileys_enchantments:block/corrupted_bookshelf"
+  }
+}

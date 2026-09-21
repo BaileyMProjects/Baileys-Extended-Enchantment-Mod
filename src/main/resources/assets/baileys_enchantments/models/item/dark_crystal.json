@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "baileys_enchantments:item/dark_crystal"
+  }
+}

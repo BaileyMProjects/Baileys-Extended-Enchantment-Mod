@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/template_anvil",
+  "render_type": "minecraft:translucent",
+  "textures": {
+    "particle": "baileys_enchantments:block/ancient_anvil",
+    "body": "baileys_enchantments:block/ancient_anvil_emissive",
+    "top": "baileys_enchantments:block/ancient_anvil_top_emissive"
+  }
+}

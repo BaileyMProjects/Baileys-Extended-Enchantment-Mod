@@ -1,0 +1,27 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="baileys_enchantments"
+version="1.0.2"
+displayName="Bailey's Extended Enchantment Mod"
+authors="Bailey"
+description='''
+A huge extension to Minecraft's enchantment system: a second enchantment table,
+loads of brand-new enchantments, and boosted versions of existing ones.
+'''
+
+[[dependencies.baileys_enchantments]]
+    modId="forge"
+    mandatory=true
+    versionRange="[47.3,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.baileys_enchantments]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.20.1,1.21)"
+    ordering="NONE"
+    side="BOTH"

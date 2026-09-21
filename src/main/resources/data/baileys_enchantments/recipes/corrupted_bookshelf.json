@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "E",
+    "B"
+  ],
+  "key": {
+    "E": {"item": "minecraft:echo_shard"},
+    "B": {"item": "minecraft:bookshelf"}
+  },
+  "result": {
+    "item": "baileys_enchantments:corrupted_bookshelf",
+    "count": 1
+  }
+}

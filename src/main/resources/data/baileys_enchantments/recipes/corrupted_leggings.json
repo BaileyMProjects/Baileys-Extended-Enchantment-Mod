@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "item": "baileys_enchantments:corrupted_upgrade_smithing_template"
+  },
+  "base": {
+    "item": "minecraft:diamond_leggings"
+  },
+  "addition": {
+    "item": "minecraft:echo_shard"
+  },
+  "result": {
+    "item": "baileys_enchantments:corrupted_leggings"
+  }
+}

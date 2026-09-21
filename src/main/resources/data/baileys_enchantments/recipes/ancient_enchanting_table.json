@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "EHE",
+    "DTD",
+    "OOO"
+  ],
+  "key": {
+    "E": {"item": "minecraft:echo_shard"},
+    "H": {"item": "baileys_enchantments:warden_heart"},
+    "D": {"item": "minecraft:diamond"},
+    "T": {"item": "minecraft:enchanting_table"},
+    "O": {"item": "minecraft:obsidian"}
+  },
+  "result": {
+    "item": "baileys_enchantments:ancient_enchanting_table",
+    "count": 1
+  }
+}
