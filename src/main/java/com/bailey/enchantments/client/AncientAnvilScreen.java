@@ -319,17 +319,28 @@ public class AncientAnvilScreen extends AbstractContainerScreen<AncientAnvilMenu
     private void drawSecretToggle(GuiGraphics guiGraphics) {
         boolean on = this.menu.isSecretMode();
 
+        // ⚠️ THE FILL STAYS DARK IN BOTH STATES. Filling it red was tried and rejected —
+        // Bailey, twice: "that makes it hard to read", then "I also said the secret shouldnt be
+        // highlighted with filling the box with red as it is hard to read."
+        //
+        // Armed is shown by the BORDER lighting up and a lamp appearing on the left, so the
+        // label keeps a dark backing and full contrast whatever the state.
         int border = on ? SECRET_RED : PANEL_OUTLINE;
-        int fill = on ? SECRET_RED_DIM : PANEL_LO;
 
         guiGraphics.fill(SECRET_TOGGLE_X, SECRET_TOGGLE_Y,
                 SECRET_TOGGLE_X + SECRET_TOGGLE_W, SECRET_TOGGLE_Y + SECRET_TOGGLE_H, border);
         guiGraphics.fill(SECRET_TOGGLE_X + 1, SECRET_TOGGLE_Y + 1,
-                SECRET_TOGGLE_X + SECRET_TOGGLE_W - 1, SECRET_TOGGLE_Y + SECRET_TOGGLE_H - 1, fill);
+                SECRET_TOGGLE_X + SECRET_TOGGLE_W - 1, SECRET_TOGGLE_Y + SECRET_TOGGLE_H - 1, PANEL_WELL);
+
+        // The lamp: unmistakably on or off at a glance, and it costs no legibility.
+        guiGraphics.fill(SECRET_TOGGLE_X + 3, SECRET_TOGGLE_Y + 4,
+                SECRET_TOGGLE_X + 6, SECRET_TOGGLE_Y + 8, on ? SECRET_RED : SECRET_RED_DIM);
 
         // The word itself is scrambled until this player has attempted a Secret in this world.
+        // Centred in the space LEFT of the lamp, not in the whole button.
         Component label = secretWord();
-        int labelX = SECRET_TOGGLE_X + (SECRET_TOGGLE_W - this.font.width(label)) / 2;
+        int textArea = SECRET_TOGGLE_W - 8;
+        int labelX = SECRET_TOGGLE_X + 8 + (textArea - this.font.width(label)) / 2;
         guiGraphics.drawString(this.font, label, labelX, SECRET_TOGGLE_Y + 2, SECRET_RED, false);
 
         if (!on) return;
@@ -356,13 +367,20 @@ public class AncientAnvilScreen extends AbstractContainerScreen<AncientAnvilMenu
     }
 
     /**
-     * Draw at half scale. The font has one size, so "smaller" is a transform: scale the pose
-     * stack by 0.5 and double the coordinates so the text lands where it was asked for.
+     * Draw at reduced scale. The font has one size, so "smaller" is a transform: scale the
+     * pose stack and divide the coordinates back out so the text lands where it was asked for.
+     *
+     * ⚠️ 0.75, not 0.5. Half scale was built first and Bailey found it "a bit small for my
+     * liking" — and at 0.5 the glyphs also land on half-pixels and go soft. Three-quarters is
+     * legible and still visibly secondary to the button.
      */
+    private static final float SMALL_SCALE = 0.75F;
+
     private void drawSmall(GuiGraphics guiGraphics, Component text, int x, int y) {
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().scale(0.5F, 0.5F, 1.0F);
-        guiGraphics.drawString(this.font, text, x * 2, y * 2, SECRET_RED, false);
+        guiGraphics.pose().scale(SMALL_SCALE, SMALL_SCALE, 1.0F);
+        guiGraphics.drawString(this.font, text,
+                Math.round(x / SMALL_SCALE), Math.round(y / SMALL_SCALE), SECRET_RED, false);
         guiGraphics.pose().popPose();
     }
 

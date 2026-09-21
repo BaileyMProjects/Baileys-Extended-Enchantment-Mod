@@ -91,14 +91,43 @@ public final class SecretRitualEvents {
     public static void playSuccess(ServerLevel level, BlockPos pos, ServerPlayer player, ItemStack prize) {
         double cx = pos.getX() + 0.5, cy = pos.getY() + 1.0, cz = pos.getZ() + 0.5;
 
-        // A column and a burst, not a sparkle. Sculk and soul rather than happy colours.
-        level.sendParticles(ParticleTypes.SCULK_SOUL, cx, cy + 0.3, cz, 60, 0.35, 0.55, 0.35, 0.02);
-        level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, cx, cy, cz, 40, 0.30, 0.45, 0.30, 0.03);
-        level.sendParticles(ParticleTypes.SCULK_CHARGE_POP, cx, cy + 0.6, cz, 30, 0.45, 0.30, 0.45, 0.05);
-        level.sendParticles(ParticleTypes.FLASH, cx, cy + 0.5, cz, 1, 0, 0, 0, 0);
+        // ⚠️ SOUND FIRST, AND NOT THE SONIC BOOM.
+        //
+        // The first version led with WARDEN_SONIC_BOOM and Bailey reported "the sound effect
+        // was really delayed" — correctly. That sample opens with the Warden's charge-up, so
+        // the impact lands most of a second after the visuals. END_PORTAL_SPAWN hits
+        // immediately and is grand without being cheerful, which is what was asked for.
+        level.playSound(null, pos, SoundEvents.END_PORTAL_SPAWN, SoundSource.BLOCKS, 0.9F, 1.6F);
+        level.playSound(null, pos, SoundEvents.SCULK_CATALYST_BLOOM, SoundSource.BLOCKS, 1.0F, 0.6F);
+        level.playSound(null, pos, SoundEvents.BEACON_ACTIVATE, SoundSource.BLOCKS, 0.7F, 0.5F);
 
-        level.playSound(null, pos, SoundEvents.SCULK_CATALYST_BLOOM, SoundSource.BLOCKS, 1.0F, 0.7F);
-        level.playSound(null, pos, SoundEvents.WARDEN_SONIC_BOOM, SoundSource.BLOCKS, 0.55F, 1.4F);
+        // A pillar of light, a shockwave ring, and a slow fall — three separate gestures rather
+        // than one puff. Bailey: "could be significantly grander."
+        level.sendParticles(ParticleTypes.FLASH, cx, cy + 0.6, cz, 2, 0, 0, 0, 0);
+
+        // The column: tall, dense, rising.
+        for (int i = 0; i < 26; i++) {
+            double h = i * 0.13;
+            level.sendParticles(ParticleTypes.SCULK_SOUL, cx, cy + h, cz, 6, 0.16, 0.05, 0.16, 0.015);
+            level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, cx, cy + h, cz, 3, 0.12, 0.04, 0.12, 0.02);
+        }
+
+        // The ring: a shockwave thrown outward along the ground, drawn as a real circle so it
+        // reads as a wave rather than as random scatter.
+        for (int i = 0; i < 48; i++) {
+            double a = (Math.PI * 2 / 48) * i;
+            double dx = Math.cos(a), dz = Math.sin(a);
+            level.sendParticles(ParticleTypes.SCULK_CHARGE_POP,
+                    cx + dx * 1.15, cy - 0.35, cz + dz * 1.15, 1, dx * 0.25, 0.04, dz * 0.25, 0.22);
+            if (i % 2 == 0) {
+                level.sendParticles(ParticleTypes.SOUL,
+                        cx + dx * 0.7, cy - 0.2, cz + dz * 0.7, 1, dx * 0.12, 0.1, dz * 0.12, 0.1);
+            }
+        }
+
+        // The settle: a wide, slow drift so the moment has a tail instead of stopping dead.
+        level.sendParticles(ParticleTypes.SCULK_SOUL, cx, cy + 1.6, cz, 50, 0.9, 0.5, 0.9, 0.005);
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, cx, cy + 0.5, cz, 40, 0.6, 0.7, 0.6, 0.35);
 
         dropPrize(level, pos, player, prize);
     }

@@ -299,6 +299,32 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
         return false;
     }
 
+    /**
+     * Hand the Ultimate/Secret ritual inputs back to the player.
+     *
+     * ⚠️ Anything that will not fit is DROPPED, never discarded. A player whose inventory is
+     * full must not lose a Warden Heart's worth of crystal to a UI toggle.
+     *
+     * ⚠️ The preview result is cleared too. It is derived from the inputs, so leaving it on
+     * screen after the inputs are gone would show a result that can no longer be produced —
+     * and on the Secret tab that result is the one thing a player must never misread.
+     */
+    private void returnRitualInputs(Player player) {
+        for (int i = 0; i < this.ultimateInputs.getContainerSize(); i++) {
+            ItemStack stack = this.ultimateInputs.getItem(i);
+            if (stack.isEmpty()) continue;
+            this.ultimateInputs.setItem(i, ItemStack.EMPTY);
+            if (!player.getInventory().add(stack)) {
+                player.drop(stack, false);
+            }
+        }
+        this.ultimateInputs.setChanged();
+        this.ultimateResult.setItem(0, ItemStack.EMPTY);
+        this.upgradeOptions.clear();
+        this.upgradeCount.set(0);
+        this.ultimateReady.set(0);
+    }
+
     @Override
     public boolean clickMenuButton(Player player, int id) {
         if (id == BTN_TAB_FORGE) {
@@ -326,6 +352,20 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
         }
         if (id == BTN_TOGGLE_SECRET) {
             this.secretMode.set(this.secretMode.get() == 0 ? 1 : 0);
+
+            // ⚠️ SWAPPING MODES EMPTIES THE RITUAL SLOTS BACK INTO THE PLAYER'S INVENTORY.
+            // Bailey, 2026-09-21. It is not tidying — it is the answer to a problem this menu
+            // had no answer for: the two modes demand DIFFERENT crystals, so flicking the
+            // toggle leaves whatever is in the slot silently wrong. The slot itself accepts
+            // both crystals on purpose, and the mismatch is only caught later when the result
+            // refuses to appear, which reads as the anvil being broken rather than as the
+            // player holding the wrong stone.
+            //
+            // Handing it all back makes the switch mean "start again with the other ritual",
+            // which is what it actually is.
+            if (!player.level().isClientSide()) {
+                returnRitualInputs(player);
+            }
             // The eligible-base list differs between the two modes, so the whole result has to
             // be rebuilt, not merely redrawn. Without this the screen would keep offering the
             // Ultimate base list while the server had already switched to the Secret one.
