@@ -128,7 +128,7 @@ public class ModUltimateEvents {
         if (!(cause instanceof LivingEntity attacker)) return;
         LivingEntity victim = event.getEntity();
         ItemStack weapon = attacker.getMainHandItem();
-        if (Ultimates.hasUltimate(weapon, ModEnchantments.EXECUTE.get())) {
+        if (Ultimates.hasExecutePerk(weapon)) {
             // Flat 20% damage bonus
             event.setAmount(event.getAmount() * 1.2f);
 
@@ -205,7 +205,7 @@ public class ModUltimateEvents {
         ItemStack weapon = attacker.getMainHandItem();
 
         // Execute blood splatter on hit
-        if (Ultimates.hasUltimate(weapon, ModEnchantments.EXECUTE.get())
+        if (Ultimates.hasExecutePerk(weapon)
                 && victim.level() instanceof ServerLevel sl) {
             sl.sendParticles(
                     new BlockParticleOption(ParticleTypes.BLOCK, Blocks.REDSTONE_BLOCK.defaultBlockState()),

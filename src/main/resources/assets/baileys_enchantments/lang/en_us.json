@@ -104,7 +104,7 @@
   "enchantment.baileys_enchantments.homing.desc": "Arrows curve in-flight toward the nearest enemy.",
   "enchantment.baileys_enchantments.shatter.desc": "+45 damage in the Deep Dark, and against anything born of it. Nothing at all elsewhere.",
   "enchantment.baileys_enchantments.silence.desc": "The deep stops hearing you. You emit no vibrations — sensors, shriekers and the Warden itself are blind to you, though it can still smell you.",
-  "enchantment.baileys_enchantments.resonance.desc": "Every strike releases a sonic pulse, tearing into everything nearby.",
+  "enchantment.baileys_enchantments.resonance.desc": "Sonic pulse on hit, and Execute's perks. Right-click to gather and scatter at 20% health.",
 
   "baileys_enchantments.configuration.title": "Bailey's Extended Enchantment Mod Configs",
   "baileys_enchantments.configuration.logOnSetup": "Log On Setup"

@@ -94,6 +94,27 @@ public class Ultimates {
         return EnchantmentHelper.getEnchantments(stack).getOrDefault(enchantment, 0);
     }
 
+
+    /**
+     * Does this weapon carry Execute's perks — the damage bonus, the bleed, and the instant
+     * kill at or below 20% health?
+     *
+     * <p>⚠️ <b>RESONANCE COUNTS, and that is deliberate.</b> Bailey, 2026-09-21:
+     * <i>"Execute should also still be an active perk on this enchant which would pair perfectly
+     * with this move as it makes everyone vulnerable to the executes one shot perk."</i>
+     *
+     * <p>Resonance is gambled FROM Execute and destroys it, so keeping Execute's perks is what
+     * makes the trade an upgrade rather than a sideways move. It also makes the right-click
+     * ability coherent: that move exists to set everything to exactly the execute threshold, and
+     * without this it would set up a kill the sword could no longer perform.
+     *
+     * <p>⚠️ Call this rather than testing for EXECUTE directly. Every site that checks for the
+     * enchantment by hand is a place where Resonance silently loses a perk.
+     */
+    public static boolean hasExecutePerk(ItemStack weapon) {
+        return hasUltimate(weapon, ModEnchantments.EXECUTE.get())
+                || hasUltimate(weapon, ModEnchantments.RESONANCE.get());
+    }
     public static boolean hasAnyUltimate(ItemStack stack) {
         ensureBuilt();
         Map<Enchantment, Integer> enchants = EnchantmentHelper.getEnchantments(stack);
