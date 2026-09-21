@@ -98,8 +98,13 @@ public class ItemGen {
             's', 0xFF1E4A46,   // book spine, teal
             't', 0xFF4A3527,   // book spine, tan
             'u', 0xFF2E3A52,   // book spine, slate blue
-            'W', 0xFF3D434B,   // shelf frame, lit
-            'w', 0xFF2B2F35);  // shelf frame, shadow
+            'v', 0xFF231F1C,   // shelf wood, deepest
+            'w', 0xFF332C26,   // shelf wood, mid
+            'W', 0xFF473C32,   // shelf wood, lit
+            'R', 0xFF5A4370,   // book binding highlight, violet
+            'S', 0xFF2E6E68,   // book binding highlight, teal
+            'T', 0xFF6B4E38,   // book binding highlight, tan
+            'U', 0xFF44567A);  // book binding highlight, slate blue
     static final int CORRUPT_GLOW_DIM = 0xFF14565A, CORRUPT_GLOW_HOT = 0xFF7DF5E6;
 
     /**
@@ -112,22 +117,22 @@ public class ItemGen {
      * from the top-right and bottom-left, with the glow sitting in the thickest growth.
      */
     static final String[] BOOKSHELF = {
-            "WWWWWWWWWWWKKggK",
-            "wwwwwwwwwwKKkkKK",
-            "wrrxssxttxuKkkKx",
-            "wrrxssxttxuuxkKx",
-            "wrrxssxttxuuxrKx",
-            "wrrxssxttxuuxrrx",
-            "wrrxssxttxuuxrrx",
-            "wppppppppppppppw",
-            "wsxttxuurxssxttw",
-            "wsxttxuurxssxttw",
-            "KKxttxuurxssxttw",
-            "gKKxtxuurxssxttw",
-            "KggKxxuurxssxttw",
-            "kKgKKxuurxssxttw",
-            "wkKKkwwwwwwwwwww",
-            "WwkkwWWWWWWWWWWW"
+            "vvvvvvvvvvvvvKgK",
+            "vWWWWWWWWWWWKkkK",
+            "vWwWWwWWWwWWKkKw",
+            "wrrxsstxuurxKKsw",
+            "wrrxsstxuurxksSw",
+            "wRrxsStxUurxsStw",
+            "wrrxsstxuurxsstw",
+            "wrrxsstxuurxsstw",
+            "wvvvvvvvvvvvvvvw",
+            "wxttxuuxxssxttxw",
+            "wsttxuurxssxttuw",
+            "KsttxuurxssxttuW",
+            "KKttxUurxsSxTtuw",
+            "gKKtxuurxssxttuw",
+            "kKgKvWWWWWWWWWWv",
+            "vkKvvvvvvvvvvvvv"
     };
 
     // ⚠️ THE ARMOUR ICONS ARE NOT GENERATED, AND THAT IS A DELIBERATE RETREAT.

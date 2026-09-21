@@ -50,6 +50,28 @@ public class GuiGen {
     static void clip(int x, int y, int w, int h) { clipX = x; clipY = y; clipW = w; clipH = h; }
     static void noClip() { clip(0, 0, W, H); }
 
+    /**
+     * Occupancy mask. Bailey, 2026-09-21: "go closer to what you initially had where the
+     * corruption spread across the screen but be careful of the placement. If thats hard maybe
+     * just compensate by having a lot of corruption."
+     *
+     * The first version spread nicely and grew over the hotbar and over the Secret warning
+     * text. The second version could not overlap anything but was confined to the border.
+     * A mask gets both: every slot, field and text band marks itself forbidden, and the sculk
+     * is then scattered across the WHOLE panel at high density with placement checked per
+     * pixel. Overlap becomes impossible rather than avoided by hand, so density is free.
+     */
+    static boolean[] blocked = new boolean[W * H];
+    static boolean maskOn = false;
+
+    static void forbid(int x, int y, int w, int h) {
+        for (int j = y - 1; j < y + h + 1; j++)
+            for (int i = x - 1; i < x + w + 1; i++)
+                if (i >= 0 && j >= 0 && i < W && j < H) blocked[j * W + i] = true;
+    }
+
+    static void clearMask() { blocked = new boolean[W * H]; }
+
     public static void main(String[] args) throws Exception {
         String dir = args[0];
         table(dir + "/ancient_enchanting_table.png");
@@ -59,6 +81,7 @@ public class GuiGen {
 
     // ---- primitives ------------------------------------------------------------------
     static void px(int x, int y, int c) {
+        if (maskOn && x >= 0 && y >= 0 && x < W && y < H && blocked[y * W + x]) return;
         if (x < clipX || y < clipY || x >= clipX + clipW || y >= clipY + clipH) return;
         if (x < 0 || y < 0 || x >= W || y >= H) return;
         if ((c >>> 24) == 0xFF) { img.setRGB(x, y, c); return; }
@@ -89,6 +112,7 @@ public class GuiGen {
 
     /** Recessed area: bevel inverted. Used for slot wells and sunken fields. */
     static void recess(int x, int y, int w, int h) {
+        forbid(x, y, w, h);
         rect(x, y, w, h, WELL_IN);
         rect(x, y, w, 1, WELL_DK);
         rect(x, y, 1, h, WELL_DK);
@@ -199,6 +223,33 @@ public class GuiGen {
         }
     }
 
+    /**
+     * Sculk scattered over the whole panel, not just its border.
+     *
+     * Every pixel is mask-checked, so a blob may sit right up against a slot and stop dead at
+     * its edge — which is what growth around an obstacle actually looks like, and is why the
+     * density can be this high without hurting readability.
+     */
+    static void sculkSpread(long seed) {
+        Random r = new Random(seed * 7919L);
+        for (int i = 0; i < 90; i++) {
+            int cx = 2 + r.nextInt(PW - 4);
+            int cy = 2 + r.nextInt(PH - 4);
+            // Bias toward the edges: the middle of the panel is where the eye works, so mass
+            // collects at the rim and only tendrils reach inward.
+            double edgeness = Math.min(Math.min(cx, PW - cx), Math.min(cy, PH - cy)) / 40.0;
+            int spread = 5 + r.nextInt(9);
+            int density = (int) ((70 + r.nextInt(110)) * (1.3 - Math.min(edgeness, 1.0)));
+            sculkPatch(cx, cy, spread, density, seed + 500 + i);
+        }
+        // Long veins wandering across the panel, broken wherever they meet content.
+        for (int i = 0; i < 14; i++) {
+            int x = 2 + r.nextInt(PW - 4), y = 2 + r.nextInt(PH - 4);
+            boolean horiz = r.nextBoolean();
+            vein(x, y, 20 + r.nextInt(40), horiz ? 1 : 0, horiz ? 0 : 1, seed + 900 + i);
+        }
+    }
+
     /** A vein running along an edge, thinning as it goes. */
     static void vein(int x, int y, int len, int dx, int dy, long seed) {
         Random r = new Random(seed);
@@ -231,17 +282,36 @@ public class GuiGen {
     static void begin() {
         img = new BufferedImage(W, H, BufferedImage.TYPE_INT_ARGB);
         rect(0, 0, W, H, 0x00000000);
+        clearMask();
+        maskOn = false;
+    }
+
+    /**
+     * Text bands the screens draw over the panel. These are not visible in the texture, so
+     * nothing else records them — but sculk grown underneath a label makes the label
+     * unreadable, which is the exact complaint that started this.
+     */
+    static void forbidCommonText() {
+        // ⚠️ Reserve what the text ACTUALLY covers, not the whole row. Blocking full-width
+        // bands walled off the entire top half of the panel and left the corruption nowhere
+        // to grow but the frame — which is the problem this was meant to solve.
+        forbid(6, 4, 122, 13);        // title, y6
+        forbid(154, 4, 18, 14);       // the "?" info icon, top-right
+        forbid(6, 16, 134, 13);       // hint / cost row, y18
+        forbid(6, 70, 108, 12);       // "Inventory" label, y72
     }
 
     static void shell(long seed) {
         panel(0, 0, PW, PH);
         mottle(2, 2, PW - 4, PH - 4, seed);
 
+        // Corruption. The mask guarantees it cannot reach a slot, a field or a label, so it
+        // is scattered across the WHOLE panel at high density rather than hugging the frame.
         clip(1, 1, PW - 2, PH - 2);
-        // Corruption. It enters from the corners and creeps along the edges, never across
-        // the middle band where the slots and labels live — the panel has to stay readable,
-        // so the sculk frames the work area rather than competing with it.
+        maskOn = true;
         sculkBorder(seed);
+        sculkSpread(seed);
+        maskOn = false;
         noClip();
 
         // the divider above the player inventory, so the two halves read as separate
@@ -265,22 +335,48 @@ public class GuiGen {
 
     // ---- the three screens -----------------------------------------------------------
 
-    /** Slots (15,47) item and (35,47) lapis-equivalent; three offer rows at x60 y14/33/52. */
+    /** Reserve a slot's footprint without drawing it yet. */
+    static void forbidSlot(int itemX, int itemY) { forbid(itemX - 1, itemY - 1, 18, 18); }
+
+    // ⚠️ ORDER MATTERS IN ALL THREE OF THESE, AND IT IS NOT OBVIOUS.
+    //
+    //   1. reserve every slot, field and text band with forbid()
+    //   2. shell() — paints the panel, then grows corruption against that mask
+    //   3. draw the slots and the arrow for real
+    //
+    // Drawing the slots in step 1 does not work: shell() paints the panel background over the
+    // whole area and erases them. Reserving is not drawing.
+
+    /** Slots (15,47) item and (35,47) shards; three offer rows at x60, y14/33/52. */
     static void table(String path) throws Exception {
         begin();
+        forbidSlot(15, 47);
+        forbidSlot(35, 47);
+        forbid(58, 12, 112, 61);      // the offer column
+        forbidCommonText();
+
         shell(1001);
+
         slot(15, 47);
         slot(35, 47);
-        // the offer column sits behind code-drawn rows; give it a frame so it reads as sunken
         recess(58, 12, 112, 61);
         save(path);
     }
 
-    /** Forge tab: inputs (27,47) and (76,47), result (134,47), name field 59..169 x 20..36. */
+    /** Forge tab: inputs (27,47) and (76,47), result (134,47), rename field 59..169 x 20..36. */
     static void forge(String path) throws Exception {
         begin();
+        forbidSlot(27, 47);
+        forbidSlot(76, 47);
+        forbidSlot(134, 47);
+        forbid(58, 19, 112, 18);      // rename field
+        forbid(100, 45, 22, 15);      // the arrow
+        forbid(94, 66, 78, 15);       // the forge cost readout, drawn at y69
+        forbidCommonText();
+
         shell(2002);
-        recess(58, 19, 112, 18);      // rename field
+
+        recess(58, 19, 112, 18);
         slot(27, 47);
         slot(76, 47);
         arrow(103, 47);
@@ -291,7 +387,17 @@ public class GuiGen {
     /** Ultimate tab: (8,48) template, (26,48) gear, (44,48) crystal, result (98,48). */
     static void ultimate(String path) throws Exception {
         begin();
+        forbidSlot(8, 48);
+        forbidSlot(26, 48);
+        forbidSlot(44, 48);
+        forbidSlot(98, 48);
+        forbid(67, 46, 22, 15);       // the arrow
+        forbid(6, 27, PW - 12, 20);   // the whole Secret control block, y29..45
+        forbid(112, 46, 48, 20);      // cycle button and the n/n indicator
+        forbidCommonText();
+
         shell(3003);
+
         slot(8, 48);
         slot(26, 48);
         slot(44, 48);
