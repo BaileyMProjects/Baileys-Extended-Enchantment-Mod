@@ -26,10 +26,13 @@ public class AncientEnchantingTableScreen extends AbstractContainerScreen<Ancien
             BaileysEnchantments.MODID, "textures/gui/container/ancient_enchanting_table.png");
 
     // Slot colors: disabled, enabled, highlighted
-    private static final int COLOR_SLOT_DISABLED   = 0xFF444444;
-    private static final int COLOR_SLOT_ENABLED     = 0xFF1A1A3A;
-    private static final int COLOR_SLOT_HOVER       = 0xFF2A2A5A;
-    private static final int COLOR_SLOT_BORDER      = 0xFF6644AA;
+    // Offer rows are drawn in code over the panel texture, so they share GuiGen's deepslate
+    // palette — see tools/GuiGen.java. The enabled row is a sculk teal so an affordable
+    // offer reads as "powered" against the dead grey of one you cannot pay for.
+    private static final int COLOR_SLOT_DISABLED   = 0xFF2B3036;
+    private static final int COLOR_SLOT_ENABLED     = 0xFF15353A;
+    private static final int COLOR_SLOT_HOVER       = 0xFF1E5259;
+    private static final int COLOR_SLOT_BORDER      = 0xFF0E1014;
 
     // Orb icon colors per row: green (cheap), amber (mid), purple (expensive)
     private static final int[] ORB_RIM   = {0xFF0D5C0D, 0xFF5C4A0D, 0xFF3D1055};
@@ -83,8 +86,8 @@ public class AncientEnchantingTableScreen extends AbstractContainerScreen<Ancien
 
             if (requiredLevel == 0 || clue == null) {
                 // Disabled slot
-                guiGraphics.fill(slotX, slotY, slotX + 108, slotY + 19, COLOR_SLOT_DISABLED);
-                guiGraphics.fill(slotX + 1, slotY + 1, slotX + 107, slotY + 18, 0xFF333333);
+                guiGraphics.fill(slotX, slotY, slotX + 108, slotY + 19, COLOR_SLOT_BORDER);
+                guiGraphics.fill(slotX + 1, slotY + 1, slotX + 107, slotY + 18, COLOR_SLOT_DISABLED);
                 continue;
             }
 

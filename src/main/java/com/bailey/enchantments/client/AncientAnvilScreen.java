@@ -45,6 +45,14 @@ public class AncientAnvilScreen extends AbstractContainerScreen<AncientAnvilMenu
 
     // The Secret tier is red, against the Ultimates' pink 0xFF85C2 — Bailey, 2026-08-09:
     // "it should be like a red themed enchantment rather than pink".
+    // Chrome drawn in code has to match the panel texture, which is deepslate, not vanilla
+    // grey. These mirror GuiGen's palette in tools/GuiGen.java � change both together.
+    private static final int PANEL_OUTLINE = 0xFF0E1014;
+    private static final int PANEL_BASE    = 0xFF474E59;
+    private static final int PANEL_LO      = 0xFF343A42;
+    private static final int PANEL_HI      = 0xFF737E8D;
+    private static final int PANEL_WELL    = 0xFF272C33;
+
     private static final int SECRET_RED = 0xFFE0293A;
     private static final int SECRET_RED_DIM = 0xFF7A1721;
 
@@ -177,8 +185,8 @@ public class AncientAnvilScreen extends AbstractContainerScreen<AncientAnvilMenu
         if (this.menu.getActiveTab() == AncientAnvilMenu.TAB_FORGE) {
             guiGraphics.blit(ANVIL_LOCATION, x, y, 0.0F, 0.0F, this.imageWidth, this.imageHeight, 256, 256);
             if (this.menu.getSlot(0).hasItem()) {
-                guiGraphics.fill(x + 59, y + 20, x + 169, y + 36, 0xFF000000);
-                guiGraphics.fill(x + 60, y + 21, x + 168, y + 35, 0xFF333333);
+                guiGraphics.fill(x + 59, y + 20, x + 169, y + 36, PANEL_OUTLINE);
+                guiGraphics.fill(x + 60, y + 21, x + 168, y + 35, PANEL_WELL);
             }
         } else {
             guiGraphics.blit(SMITHING_LOCATION, x, y, 0.0F, 0.0F, this.imageWidth, this.imageHeight, 256, 256);
@@ -190,8 +198,8 @@ public class AncientAnvilScreen extends AbstractContainerScreen<AncientAnvilMenu
 
         if (this.activeCycleButton() != -1) {
             int bx = x + 116, by = y + 50;
-            guiGraphics.fill(bx, by, bx + 14, by + 12, 0xFF333333);
-            guiGraphics.fill(bx + 1, by + 1, bx + 13, by + 11, 0xFF777777);
+            guiGraphics.fill(bx, by, bx + 14, by + 12, PANEL_OUTLINE);
+            guiGraphics.fill(bx + 1, by + 1, bx + 13, by + 11, PANEL_HI);
             guiGraphics.drawString(this.font, "»", bx + 3, by + 2, 0xFFFFFFFF, false);
         }
     }
@@ -199,10 +207,10 @@ public class AncientAnvilScreen extends AbstractContainerScreen<AncientAnvilMenu
     private void drawTab(GuiGraphics guiGraphics, int index, String label, boolean active) {
         int tx = this.leftPos + 5 + index * (TAB_W + 2);
         int ty = this.topPos - TAB_H + 1;
-        int bg = active ? 0xFFC6C6C6 : 0xFF8B8B8B;
-        guiGraphics.fill(tx, ty, tx + TAB_W, ty + TAB_H + (active ? 1 : 0), 0xFF373737);
+        int bg = active ? PANEL_BASE : PANEL_LO;
+        guiGraphics.fill(tx, ty, tx + TAB_W, ty + TAB_H + (active ? 1 : 0), PANEL_OUTLINE);
         guiGraphics.fill(tx + 1, ty + 1, tx + TAB_W - 1, ty + TAB_H + (active ? 1 : 0), bg);
-        int textColor = active ? 0xFF222222 : 0xFF555555;
+        int textColor = active ? 0xFFE8EDF2 : 0xFF98A2AE;
         guiGraphics.drawString(this.font, label, tx + (TAB_W - this.font.width(label)) / 2, ty + 5, textColor, false);
     }
 
@@ -212,8 +220,8 @@ public class AncientAnvilScreen extends AbstractContainerScreen<AncientAnvilMenu
 
         // Info "?" icon (top-right corner of panel)
         int ix = this.imageWidth - 15, iy = 6;
-        guiGraphics.fill(ix, iy, ix + 9, iy + 9, 0xFF000000);
-        guiGraphics.fill(ix + 1, iy + 1, ix + 8, iy + 8, 0xFF6A6A6A);
+        guiGraphics.fill(ix, iy, ix + 9, iy + 9, PANEL_OUTLINE);
+        guiGraphics.fill(ix + 1, iy + 1, ix + 8, iy + 8, PANEL_HI);
         guiGraphics.drawString(this.font, "?", ix + 2, iy + 1, 0xFFFFFFFF, false);
 
         int tab = this.menu.getActiveTab();
