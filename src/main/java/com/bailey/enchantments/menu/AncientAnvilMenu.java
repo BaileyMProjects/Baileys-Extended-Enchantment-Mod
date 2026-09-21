@@ -600,7 +600,11 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
                         anyRejected = true;
                     } else {
                         anyApplied = true;
-                        int cap = OverCaps.tableCeiling(ench);
+                        // ⚠️ NOT tableCeiling. An anvil merge may climb WITHIN the over-cap
+                        // range but may never step INTO it: Prot V + V -> VI, but IV + IV
+                        // stays IV. The first over-cap level always comes from the Ancient
+                        // Enchanting Table. See OverCaps.mergeCeiling for the full rule.
+                        int cap = OverCaps.mergeCeiling(ench, currentLevel, entry.getValue());
                         if (mergedLevel > cap) mergedLevel = cap;
                         enchantments.put(ench, mergedLevel);
                         int anvilCost = (int) Math.ceil(ench.getMinCost(mergedLevel) * forgeScale);

@@ -68,4 +68,35 @@ public class OverCaps {
     public static int tableCeiling(Enchantment enchantment) {
         return boostedCap(enchantment);
     }
+
+    // The ceiling an ANVIL MERGE may reach — which is not the same as what the table may roll.
+    //
+    // ⚠️ THE RULE (Bailey, 2026-09-21, after playtesting): you may climb WITHIN the over-cap
+    // range, but you may never step INTO it by merging.
+    //
+    //     "you can combine V and V to make VI on an ancient anvil, which i think shouldnt be a
+    //      feature. I think you should be able to combine for example prot V and V to make VI
+    //      but not IV and IV to make V. Vanilla levels should not be able to combine to one of
+    //      our enchants."
+    //
+    // Protection's vanilla max is IV, so V and VI are already ours:
+    //
+    //     IV + IV -> IV   both at vanilla max; merging must not cross into our range
+    //     V  + V  -> VI   both already over-cap; climbing is allowed
+    //     V  + IV -> V    preserved, nothing created
+    //     VI + VI -> VI   clamped by the boosted cap
+    //
+    // The first over-cap level of any enchantment therefore comes from the Ancient Enchanting
+    // Table and nowhere else, which is the whole point -> Brain/Decisions/Enchantment sourcing.md
+    //
+    // ⚠️ Mod enchantments are unaffected by construction: their boostedCap falls through to
+    // getMaxLevel(), so vanillaMax == tableCeiling and the "both over-cap" branch can never be
+    // taken. Vampiric I + I -> II still works as an ordinary upgrade.
+    public static int mergeCeiling(Enchantment enchantment, int leftLevel, int rightLevel) {
+        int vanillaMax = enchantment.getMaxLevel();
+        if (leftLevel > vanillaMax && rightLevel > vanillaMax) {
+            return tableCeiling(enchantment);
+        }
+        return Math.max(vanillaMax, Math.max(leftLevel, rightLevel));
+    }
 }

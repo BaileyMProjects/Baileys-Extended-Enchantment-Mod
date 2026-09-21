@@ -35,6 +35,23 @@ something shipped broken, it gets written down here.
   vanilla anvil silently knocks boosted levels back down to the vanilla maximum — but it was far
   broader than the problem it was guarding against.
 
+### ⚖️ Changed — where boosted levels come from
+
+- **The Ancient Anvil can no longer create a boosted level out of two vanilla-max ones.**
+  Previously, combining two Protection IV books on an Ancient Anvil produced Protection V. It
+  no longer does. The first boosted level of any enchantment now comes from the **Ancient
+  Enchanting Table** and nowhere else.
+- **Boosted levels can still be combined upward.** Protection **V + V still gives VI** — once
+  you are above vanilla's maximum, merging works as before.
+  - Protection IV + IV → **IV** (was V)
+  - Protection V + V → **VI** (unchanged)
+  - Protection V + IV → **V** (unchanged)
+- ⚠️ **This removes something Ancient Anvils could previously do.** Items you already have keep
+  every level they have — nothing is taken off your gear. What changes is how new boosted levels
+  are obtained from here on.
+- This mod's own enchantments are unaffected; they merge to their normal maximum exactly as
+  before.
+
 ### ⚔️ Changed — Secret enchantments
 
 - **Secret enchantments are now gambled for with an Ultimate, not with a maxed ordinary
