@@ -50,3 +50,6 @@ repo/
 /patches/
 # The live mod metadata is src/main/resources/META-INF/mods.toml
 /META-INF/
+
+### tools build artefacts ###
+tools/*.class

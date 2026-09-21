@@ -64,24 +64,90 @@ public class ItemGen {
             "................",
             ".........#......",
             "........#e#.....",
-            "........#de#....",
-            ".......#cde#....",
+            "........#dg#....",
+            ".......#cdg#....",
             ".......#cdgf#...",
-            ".......#bcde#...",
-            "....#.#bbcde#...",
-            "...#d##abcge#...",
-            "...#cd#abcge#...",
-            "..#bcd#abcge#...",
-            "..#abc#aabcd#...",
+            ".......#bcge#...",
+            "....#.#bbcge#...",
+            "...#g##abcge#...",
+            "...#cg#abcge#...",
+            "..#bcg#abcge#...",
+            "..#abc#aabcg#...",
             "..#abc##aabc#...",
             "...#ab#.#ab#....",
             "....###..###....",
             "................"
     };
 
+    // Shared with the GUI panels so the armour and the shelf read as the same material as the
+    // menus. Bailey, 2026-09-21: "I want the armor to have a closer look to what you made the
+    // UI's look like."
+    static final Map<Character, Integer> CORRUPT = pal(
+            '#', 0xFF0E1014,   // outline, same as the panel outline
+            'a', 0xFF23272E,   // deepest plate
+            'b', 0xFF343A42,   // shadow plate
+            'c', 0xFF474E59,   // base plate  — the GUI panel colour exactly
+            'd', 0xFF5A626E,   // lit plate
+            'e', 0xFF737E8D,   // highlight   — the GUI bevel colour exactly
+            'k', 0xFF0D3236,   // sculk, deep
+            'K', 0xFF14565A,   // sculk, mid
+            'L', 0xFF1E8A88,   // sculk, lit
+            'x', 0xFF14171B,   // gap / recess
+            'p', 0xFF3E444D,   // plank
+            'r', 0xFF3A2B4A,   // book spine, violet
+            's', 0xFF1E4A46,   // book spine, teal
+            't', 0xFF4A3527,   // book spine, tan
+            'u', 0xFF2E3A52,   // book spine, slate blue
+            'W', 0xFF3D434B,   // shelf frame, lit
+            'w', 0xFF2B2F35);  // shelf frame, shadow
+    static final int CORRUPT_GLOW_DIM = 0xFF14565A, CORRUPT_GLOW_HOT = 0xFF7DF5E6;
+
+    /**
+     * The corrupted bookshelf — the only thing that powers the Ancient Enchanting Table, and
+     * previously a flat brown-grey block. Bailey: "the bookshelves look bad and need a complete
+     * redesign."
+     *
+     * Vanilla's bookshelf silhouette is kept (frame top and bottom, spines between, a plank
+     * across the middle) so it still reads instantly as a bookshelf — then sculk eats into it
+     * from the top-right and bottom-left, with the glow sitting in the thickest growth.
+     */
+    static final String[] BOOKSHELF = {
+            "WWWWWWWWWWWKKggK",
+            "wwwwwwwwwwKKkkKK",
+            "wrrxssxttxuKkkKx",
+            "wrrxssxttxuuxkKx",
+            "wrrxssxttxuuxrKx",
+            "wrrxssxttxuuxrrx",
+            "wrrxssxttxuuxrrx",
+            "wppppppppppppppw",
+            "wsxttxuurxssxttw",
+            "wsxttxuurxssxttw",
+            "KKxttxuurxssxttw",
+            "gKKxtxuurxssxttw",
+            "KggKxxuurxssxttw",
+            "kKgKKxuurxssxttw",
+            "wkKKkwwwwwwwwwww",
+            "WwkkwWWWWWWWWWWW"
+    };
+
+    // ⚠️ THE ARMOUR ICONS ARE NOT GENERATED, AND THAT IS A DELIBERATE RETREAT.
+    //
+    // Three attempts on 2026-09-21 all came out WORSE than the hand-drawn originals: a helmet
+    // that read as a ring, then as an arch; a chestplate that read as an hourglass, then as a
+    // crate; boots that read as a bracket, then as two squares. Reverted.
+    //
+    // The misdiagnosis is the useful part. "Bland and boring" meant the icons lacked DEPTH —
+    // they are near-flat fills with almost no value range. It did NOT mean the shapes were
+    // wrong. The originals have good silhouettes and read instantly as helmet, chestplate,
+    // boots. I redrew the silhouettes, which was the one part that did not need changing.
+    //
+    // If this is picked up again: KEEP the original shapes, and only add shading, sculk
+    // detail and glow pixels on top of them. Do not re-cut the outlines.
+
     public static void main(String[] args) throws Exception {
         String items = args[0];      // .../textures/item
         String slots = args[1];      // .../textures/gui/sprites/container/slot
+        String blocks = args.length > 2 ? args[2] : null;
 
         animated(items + "/dark_crystal.png", DARK_CRYSTAL, DARK, DARK_GLOW_DIM, DARK_GLOW_HOT);
         animated(items + "/scarlet_crystal.png", SCARLET_CRYSTAL, SCARLET, SCAR_GLOW_DIM, SCAR_GLOW_HOT);
@@ -91,6 +157,10 @@ public class ItemGen {
         ghost(items + "/empty_slot_dark_crystal.png", DARK_CRYSTAL);
         ghost(items + "/empty_slot_scarlet_crystal.png", SCARLET_CRYSTAL);
         ghost(slots + "/dark_crystal.png", DARK_CRYSTAL);
+
+        if (blocks != null) {
+            animated(blocks + "/corrupted_bookshelf.png", BOOKSHELF, CORRUPT, CORRUPT_GLOW_DIM, CORRUPT_GLOW_HOT);
+        }
     }
 
     // ---- writers ---------------------------------------------------------------------

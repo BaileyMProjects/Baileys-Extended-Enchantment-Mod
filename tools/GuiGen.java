@@ -148,6 +148,57 @@ public class GuiGen {
         }
     }
 
+    /**
+     * Corruption grown around the whole perimeter rather than blobbed into two corners.
+     *
+     * ⚠️ IT MUST NOT CROSS INTO CONTENT. Bailey, 2026-09-21: "the corruption on the left needs a
+     * change in position as it overlaps with stuff on the screen ... i think it should spread
+     * across the menu a bit more." Both at once, so the sculk now runs the full border inside a
+     * strict margin instead of sitting in two clumps that collided with the hotbar and with the
+     * Secret warning text.
+     *
+     * The safe margins are dictated by the layout, not chosen:
+     *   left   x1..5    slot wells start at x=7
+     *   right  x170..174 the last inventory well ends at x=168
+     *   top    y1..5    the title sits at y=6
+     *   bottom y160..164 the hotbar wells end at y=159
+     *
+     * Depth varies along each edge from summed sines, so the growth breathes in and out
+     * instead of reading as a ruled stripe.
+     */
+    static void sculkBorder(long seed) {
+        Random r = new Random(seed);
+        edge(seed, 1, PW - 2, 5, true, false, r);    // top
+        edge(seed + 31, 1, PW - 2, 4, true, true, r);  // bottom
+        edge(seed + 61, 1, PH - 2, 5, false, false, r); // left
+        edge(seed + 91, 1, PH - 2, 4, false, true, r);  // right
+    }
+
+    private static void edge(long seed, int from, int to, int maxDepth,
+                             boolean horizontal, boolean far, Random r) {
+        double p1 = (seed % 97) * 0.13, p2 = (seed % 53) * 0.31;
+        for (int p = from; p < to; p++) {
+            double n = Math.sin(p * 0.11 + p1) * 0.5 + Math.sin(p * 0.043 + p2) * 0.5;
+            // Power curve, not linear: the growth should be absent in places and thick in
+            // others. A linear map averages mid-depth everywhere and reads as a ruled stripe.
+            int depth = (int) Math.round(Math.pow(n * 0.5 + 0.5, 1.9) * (maxDepth + 1));
+            if (depth > maxDepth) depth = maxDepth;
+            if (depth <= 0) continue;
+            for (int d = 0; d < depth; d++) {
+                int a = horizontal ? p : (far ? PW - 2 - d : 1 + d);
+                int b = horizontal ? (far ? PH - 2 - d : 1 + d) : p;
+                int c = d == 0 ? SCULK_MD : d < depth - 1 ? SCULK_DK : (r.nextInt(2) == 0 ? SCULK_DK : -1);
+                if (c != -1) px(a, b, c);
+            }
+            // lit nodes only where the growth is thickest, so the glow follows the mass
+            if (depth >= maxDepth - 1 && r.nextInt(7) == 0) {
+                int a = horizontal ? p : (far ? PW - 3 : 2);
+                int b = horizontal ? (far ? PH - 3 : 2) : p;
+                px(a, b, r.nextInt(3) == 0 ? SCULK_HOT : SCULK_GLO);
+            }
+        }
+    }
+
     /** A vein running along an edge, thinning as it goes. */
     static void vein(int x, int y, int len, int dx, int dy, long seed) {
         Random r = new Random(seed);
@@ -190,17 +241,7 @@ public class GuiGen {
         // Corruption. It enters from the corners and creeps along the edges, never across
         // the middle band where the slots and labels live — the panel has to stay readable,
         // so the sculk frames the work area rather than competing with it.
-        sculkPatch(PW - 14, 8, 22, 300, seed + 1);
-        sculkPatch(PW - 5, 34, 14, 150, seed + 6);
-        sculkPatch(6, PH - 11, 20, 260, seed + 2);
-        sculkPatch(4, 30, 13, 130, seed + 7);
-        sculkPatch(PW - 40, PH - 5, 16, 150, seed + 8);
-
-        vein(PW - 26, 3, 34, -1, 0, seed + 3);
-        vein(3, PH - 6, 44, 1, 0, seed + 4);
-        vein(PW - 3, 16, 26, 0, 1, seed + 5);
-        vein(2, 26, 30, 0, 1, seed + 9);
-        vein(PW - 46, PH - 3, 28, 1, 0, seed + 10);
+        sculkBorder(seed);
         noClip();
 
         // the divider above the player inventory, so the two halves read as separate
@@ -232,8 +273,6 @@ public class GuiGen {
         slot(35, 47);
         // the offer column sits behind code-drawn rows; give it a frame so it reads as sunken
         recess(58, 12, 112, 61);
-        // a sculk seam down the gutter between the slots and the offers
-        vein(54, 14, 56, 0, 1, 1007);
         save(path);
     }
 

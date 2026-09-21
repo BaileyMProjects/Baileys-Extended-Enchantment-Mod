@@ -38,10 +38,26 @@ public class AncientAnvilScreen extends AbstractContainerScreen<AncientAnvilMenu
     // slots (y=48..66) and the player inventory (y=84), which is empty on this tab.
     // ⚠️ mouseClicked converts these with leftPos/topPos; renderLabels draws them as-is,
     // because it runs inside the panel-translated matrix. Do not add the offsets twice.
+    // The Secret toggle and its two text lines, all inside the upper work area.
+    //
+    // ⚠️ THIS BLOCK IS HEMMED IN ON BOTH SIDES AND THE NUMBERS ARE NOT FREE.
+    // Above: the hint/cost line sits at y=18. Below: the slot wells begin at y=47.
+    // That leaves exactly one band, y29..45, for the whole Secret control.
+    //
+    // It used to be at y=68, which put it straight through the divider at y69 and the
+    // "Inventory" label at y72 — Bailey, 2026-09-21: "the bar is not even fully in the panel
+    // and the text breaches across into the corruption". The warning was at x=8,y=30, which
+    // is where the left-hand sculk patch used to grow.
     private static final int SECRET_TOGGLE_X = 8;
-    private static final int SECRET_TOGGLE_Y = 68;
-    private static final int SECRET_TOGGLE_W = 62;
+    private static final int SECRET_TOGGLE_Y = 30;
+    private static final int SECRET_TOGGLE_W = 44;
     private static final int SECRET_TOGGLE_H = 12;
+
+    // Two short lines to the right of the button. One long line does not fit: the space is
+    // 112px and the full sentence needs ~132px.
+    private static final int SECRET_TEXT_X = SECRET_TOGGLE_X + SECRET_TOGGLE_W + 4;
+    private static final int SECRET_ODDS_Y = 29;
+    private static final int SECRET_WARN_Y = 38;
 
     // The Secret tier is red, against the Ultimates' pink 0xFF85C2 — Bailey, 2026-08-09:
     // "it should be like a red themed enchantment rather than pink".
@@ -303,9 +319,8 @@ public class AncientAnvilScreen extends AbstractContainerScreen<AncientAnvilMenu
                 "container." + BaileysEnchantments.MODID + ".secret.odds",
                 AncientAnvilMenu.getSecretChancePercent());
         Component warn = Component.translatable("container." + BaileysEnchantments.MODID + ".secret.warning");
-        guiGraphics.drawString(this.font, odds, SECRET_TOGGLE_X + SECRET_TOGGLE_W + 6,
-                SECRET_TOGGLE_Y + 2, SECRET_RED, false);
-        guiGraphics.drawString(this.font, warn, 8, 30, SECRET_RED, false);
+        guiGraphics.drawString(this.font, odds, SECRET_TEXT_X, SECRET_ODDS_Y, SECRET_RED, false);
+        guiGraphics.drawString(this.font, warn, SECRET_TEXT_X, SECRET_WARN_Y, SECRET_RED, false);
     }
 
     @Override
