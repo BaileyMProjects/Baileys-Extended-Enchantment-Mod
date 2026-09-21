@@ -11,10 +11,25 @@ something shipped broken, it gets written down here.
 
 The first release since the 1.20.1 port. It adds the Deep Dark expansion, the Secret
 enchantment tier, a reworked enchanting structure, and changes where enchantments come from.
-It also fixes four bugs, two of which were present in the published version.
+It also fixes four bugs, two of which were present in the published version, and redesigns
+all three custom screens.
 
 ⚠️ **Read "where boosted levels come from" below before updating.** Nothing is removed from
 items you already own, but how new boosted levels are obtained has changed.
+
+### 🎨 Changed — visuals
+
+- **All three custom screens have been redesigned** — the Ancient Enchanting Table and both
+  Ancient Anvil tabs. They now use proper bevelled panels and recessed slots instead of flat
+  grey boxes, in a deepslate palette with sculk corruption creeping in from the edges.
+- **The Dark Crystal and the Scarlet Crystal have been redrawn, and now look different from
+  each other.** The Scarlet Crystal was previously the Dark Crystal's shape in a different
+  colour; it is now a tall shard cluster against the Dark Crystal's squat cut gem.
+- **Both crystals now pulse.** The Dark Crystal glows sculk-blue from within, the Scarlet
+  Crystal red.
+- The greyed-out slot hints were updated to match the new crystal shapes.
+
+⚠️ Armour and block textures are unchanged and are still due a pass.
 
 ### ✨ Added — the Deep Dark expansion
 
