@@ -91,6 +91,53 @@ public final class DeepDarkBalance {
     // easier direction. The template is shared with every Ultimate — see Open decisions #18.
     public static final float SECRET_SUCCESS_CHANCE = 0.50F;
 
+
+    // ---- Mirage and Dissonance (the evasion armour line) ---------------------------
+    //
+    // Mirage is the Ultimate on Projectile Protection; Dissonance is the Secret gambled from
+    // it. Designed by Bailey 2026-09-22 -> Brain/Decisions/Open decisions.md #31.
+    //
+    // ⚠️ EVERY PASSIVE SCALES PER PIECE. Four independent rolls at a flat rate would stack
+    // toward total immunity, which is why nothing here is a per-piece constant applied four
+    // times -- they are multiplied by the piece count and capped.
+
+    /** Movement speed per piece, MULTIPLY_TOTAL. Four pieces = +24%. */
+    public static final double MIRAGE_SPEED_PER_PIECE = 0.06;
+
+    /** Attack speed per piece, MULTIPLY_TOTAL. Four pieces = +20%. */
+    public static final double MIRAGE_ATTACK_SPEED_PER_PIECE = 0.05;
+
+    /** Chance to ignore a hit entirely, per piece. Four pieces = 20%. */
+    public static final float MIRAGE_EVADE_PER_PIECE = 0.05F;
+
+    /** Extra evade while Dissonance's mode is on, on top of the per-piece total. */
+    public static final float DISSONANCE_EVADE_BONUS = 0.10F;
+
+    /**
+     * ⚠️ THE CAP EXISTS SO EVASION CAN NEVER BECOME IMMUNITY. Bailey's design stacks a
+     * per-piece chance with a mode bonus, and without a ceiling a future buff to either
+     * silently produces an unkillable player.
+     */
+    public static final float EVADE_CAP = 0.45F;
+
+    /** Damage taken while the mode is on. Bailey: "it makes you 50% weaker to hits". */
+    public static final float DISSONANCE_DAMAGE_TAKEN = 1.5F;
+
+    /** Extra block-selection range while the mode is on, for the flash step. */
+    public static final double DISSONANCE_REACH_BONUS = 3.5;
+
+    /** Between toggles, so the mode cannot be flickered to dodge a single hit. */
+    public static final int DISSONANCE_TOGGLE_COOLDOWN = 20;
+
+    /**
+     * Teleport lockout after the held item changes.
+     *
+     * ⚠️ THIS IS THE WHOLE COST OF THE MODE. Bailey, 2026-09-22: a weapon swap "just gives a 1s
+     * cooldown before you can teleport again". Without it: weapon out, hit, swap to empty hand,
+     * flash away, swap back -- an untouchable kiting loop with no downside, because "+50% damage
+     * taken" only matters if something lands.
+     */
+    public static final int DISSONANCE_SWAP_LOCKOUT = 20;
     // ---- Placeholders, NOT yet designed --------------------------------------------
     // ⚠️ Shatter and Resonance have agreed *identities* but no agreed numbers — the plan
     // says only "large bonus vs deep dark targets" and "a sonic pulse damaging nearby

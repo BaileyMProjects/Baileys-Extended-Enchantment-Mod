@@ -47,6 +47,10 @@ public class Ultimates {
         add(ModEnchantments.SCULKBANE.get(), ModEnchantments.SHATTER.get());
         add(ModEnchantments.DEEPWARD.get(),  ModEnchantments.SILENCE.get());
 
+        // The evasion line. ⚠️ Projectile Protection, not Swift Sneak: the base must exist on
+        // all four armour pieces or a full Mirage set is unobtainable.
+        add(net.minecraft.world.item.enchantment.Enchantments.PROJECTILE_PROTECTION, ModEnchantments.MIRAGE.get());
+
         // Timber had no base enchantment of its own to upgrade from — every vanilla enchant
         // it could plausibly use (Efficiency included) was already claimed above, so it was
         // unobtainable through the Ancient Anvil. It shares Efficiency with Overdrive instead,

@@ -55,6 +55,11 @@ public final class Secrets {
         // This closes Open decisions #21. The base was an inference of mine when the map ran
         // off Sharpness; the 2026-09-21 redesign settled it by moving the whole tier up a rung.
         add(ModEnchantments.EXECUTE.get(), ModEnchantments.RESONANCE.get());
+
+        // The armour evasion line. Mirage is gambled away for Dissonance exactly as Execute is
+        // for Resonance, and Dissonance keeps Mirage's passives for the same reason: winning
+        // must never be a downgrade.
+        add(ModEnchantments.MIRAGE.get(), ModEnchantments.DISSONANCE.get());
     }
 
     private static void add(Enchantment ultimate, Enchantment secret) {

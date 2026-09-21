@@ -75,6 +75,8 @@
 
   "enchantment.baileys_enchantments.shatter": "Shatter",
   "enchantment.baileys_enchantments.silence": "Silence",
+  "enchantment.baileys_enchantments.mirage": "Mirage",
+  "enchantment.baileys_enchantments.dissonance": "Dissonance",
   "enchantment.baileys_enchantments.resonance": "Resonance",
 
   "enchantment.baileys_enchantments.wither_touch": "Wither's Touch",
@@ -104,6 +106,8 @@
   "enchantment.baileys_enchantments.homing.desc": "Arrows curve in-flight toward the nearest enemy.",
   "enchantment.baileys_enchantments.shatter.desc": "+45 damage in the Deep Dark, and against anything born of it. Nothing at all elsewhere.",
   "enchantment.baileys_enchantments.silence.desc": "The deep stops hearing you. You emit no vibrations — sensors, shriekers and the Warden itself are blind to you, though it can still smell you.",
+  "enchantment.baileys_enchantments.mirage.desc": "Speed, attack speed and a chance to evade a hit outright. Scales with pieces worn.",
+  "enchantment.baileys_enchantments.dissonance.desc": "Mirage, sharpened. Sneak-click to phase: flash step, but you take far more damage.",
   "enchantment.baileys_enchantments.resonance.desc": "Sonic pulse on hit, and Execute's perks. Right-click to gather and scatter at 20% health.",
 
   "baileys_enchantments.configuration.title": "Bailey's Extended Enchantment Mod Configs",

@@ -99,6 +99,36 @@ public class ModEnchantments {
     public static final RegistryObject<Enchantment> MULTISHOT = ENCHANTMENTS.register("multishot",
             () -> new UltimateEnchantment(Enchantment.Rarity.VERY_RARE, EnchantmentCategory.BOW, EquipmentSlot.MAINHAND));
 
+
+    /**
+     * The evasion armour line, designed by Bailey 2026-09-22.
+     *
+     * <p><b>Mirage</b> upgrades from <b>Projectile Protection</b>, and that base was chosen for
+     * a structural reason rather than a thematic one. Swift Sneak was the prettier fit — the
+     * Ancient City's own enchantment — but it is <b>leggings-only</b>, and the ritual upgrades a
+     * maxed base on the item carrying it, so a full set of Mirage would have been
+     * <b>unobtainable</b>. Projectile Protection is on all four pieces.
+     *
+     * <p>✅ It also buys the competition for free: the protection family is mutually exclusive in
+     * vanilla and only one Ultimate fits per item, so every armour piece is <b>Aegis or
+     * Mirage</b>, never both.
+     *
+     * <p>⚠️ Knock-on: {@code Deepward} supersedes the whole protection family, so an evasion set
+     * gives up Deepward. That is a deliberate build tradeoff.
+     */
+    public static final RegistryObject<Enchantment> MIRAGE = ENCHANTMENTS.register("mirage",
+            () -> new UltimateEnchantment(Enchantment.Rarity.VERY_RARE, EnchantmentCategory.ARMOR, ARMOR_SLOTS));
+
+    /**
+     * Mirage's Secret: sharper evasion, plus a toggleable mode with the flash step.
+     *
+     * <p>⚠️ The mode needs a <b>full corrupted set</b> plus at least one Dissonance piece —
+     * "corruption spreads". Win the gamble once and it carries across the set, rather than
+     * needing all four pieces won separately, which would have cost ~80 Wardens instead of ~15.
+     * Behaviour lives in {@code event/MirageEvents.java}.
+     */
+    public static final RegistryObject<Enchantment> DISSONANCE = ENCHANTMENTS.register("dissonance",
+            () -> new SecretEnchantment(EnchantmentCategory.ARMOR, ARMOR_SLOTS));
     public static final RegistryObject<Enchantment> HOMING = ENCHANTMENTS.register("homing",
             () -> new SimpleModEnchantment(Enchantment.Rarity.RARE, EnchantmentCategory.BOW, 1, EquipmentSlot.MAINHAND));
 
