@@ -42,3 +42,11 @@ repo/
 ### Claude Code ###
 # Local, per-machine permission overrides — the shared settings.json IS tracked.
 .claude/settings.local.json
+
+### Port leftovers — do not let these come back ###
+# Decompiled Minecraft / NeoForge reference sources pulled during the
+# 1.21 -> 1.20.1 port. Not ours to redistribute, and nothing compiles them.
+/net/
+/patches/
+# The live mod metadata is src/main/resources/META-INF/mods.toml
+/META-INF/
