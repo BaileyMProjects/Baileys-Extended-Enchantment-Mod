@@ -13,6 +13,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.EntityMobGriefingEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
 import net.minecraftforge.event.entity.living.LivingConversionEvent;
@@ -134,6 +135,14 @@ public final class ShadowEvents {
         LivingEntity target = event.getNewTarget();
         if (target == null || !ShadowData.isShadow(event.getEntity())) return;
         if (ShadowData.areAllies(event.getEntity(), target)) event.setCanceled(true);
+    }
+
+    // ---- no griefing ----------------------------------------------------------------------
+
+    /** A shadow dragon would otherwise smash through the owner's base; a shadow enderman would loot it. */
+    @SubscribeEvent
+    public static void onGriefing(EntityMobGriefingEvent event) {
+        if (ShadowData.isShadow(event.getEntity())) event.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);
     }
 
     // ---- no conversion -----------------------------------------------------------------------

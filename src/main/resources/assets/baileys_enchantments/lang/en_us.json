@@ -116,6 +116,7 @@
 
   "entity.baileys_enchantments.shadow_remnant": "Shadow Remnant",
   "entity.baileys_enchantments.shadow_player": "Shadow",
+  "entity.baileys_enchantments.shadow_dragon": "Shadow Dragon",
   "baileys_enchantments.requiem.remnant": "A shadow lingers: %s — %s slots, %s.",
   "baileys_enchantments.requiem.arise": "ARISE. %s joins your shadows. (%s/%s)",
   "baileys_enchantments.requiem.resist": "The shadow resists. %s attempts remain.",

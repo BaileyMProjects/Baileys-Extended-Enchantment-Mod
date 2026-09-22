@@ -5,6 +5,7 @@ import com.bailey.enchantments.client.AncientAnvilScreen;
 import com.bailey.enchantments.client.AncientEnchantingTableRenderer;
 import com.bailey.enchantments.client.AncientEnchantingTableScreen;
 import com.bailey.enchantments.client.ShadowPlayerRenderer;
+import com.bailey.enchantments.client.ShadowDragonRenderer;
 import com.bailey.enchantments.entity.ModEntities;
 import com.bailey.enchantments.menu.ModMenuTypes;
 
@@ -35,5 +36,6 @@ public class BaileysEnchantmentsClient {
         // The remnant has no model; it is the particles the server sends.
         event.registerEntityRenderer(ModEntities.SHADOW_REMNANT.get(), NoopRenderer::new);
         event.registerEntityRenderer(ModEntities.SHADOW_PLAYER.get(), ShadowPlayerRenderer::new);
+        event.registerEntityRenderer(ModEntities.SHADOW_DRAGON.get(), ShadowDragonRenderer::new);
     }
 }

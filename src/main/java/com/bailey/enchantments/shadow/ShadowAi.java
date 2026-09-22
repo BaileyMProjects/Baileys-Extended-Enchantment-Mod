@@ -33,6 +33,13 @@ public final class ShadowAi {
     private ShadowAi() {}
 
     public static void install(Mob mob) {
+        if (mob instanceof ShadowDragon) {
+            // Her goals never tick (EnderDragon.aiStep replaces LivingEntity's); she drives
+            // herself from her phase. Only the body rules apply.
+            mob.getBrain().removeAllBehaviors();
+            body(mob);
+            return;
+        }
         mob.goalSelector.removeAllGoals(g -> true);
         mob.targetSelector.removeAllGoals(g -> true);
         mob.getBrain().removeAllBehaviors();

@@ -11,5 +11,5 @@ final class ShadowSupport {
     static final boolean PLAYERS = true;
 
     /** Phase 7: {@code ShadowDragon}. */
-    static final boolean DRAGON = false;
+    static final boolean DRAGON = true;
 }

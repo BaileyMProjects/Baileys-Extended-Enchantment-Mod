@@ -3,6 +3,7 @@ package com.bailey.enchantments.entity;
 import com.bailey.enchantments.BaileysEnchantments;
 import com.bailey.enchantments.shadow.ShadowRemnant;
 import com.bailey.enchantments.shadow.ShadowPlayer;
+import com.bailey.enchantments.shadow.ShadowDragon;
 
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -35,4 +36,13 @@ public class ModEntities {
                             .sized(0.6F, 1.8F)
                             .clientTrackingRange(10)
                             .build("shadow_player"));
+
+    /** The tamed dragon. See {@link ShadowDragon}. */
+    public static final RegistryObject<EntityType<ShadowDragon>> SHADOW_DRAGON =
+            ENTITY_TYPES.register("shadow_dragon", () ->
+                    EntityType.Builder.of(ShadowDragon::new, MobCategory.MONSTER)
+                            .sized(16.0F, 8.0F)
+                            .fireImmune()
+                            .clientTrackingRange(10)
+                            .build("shadow_dragon"));
 }

@@ -16,6 +16,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import com.bailey.enchantments.entity.ModEntities;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -57,7 +59,9 @@ public final class ShadowSpawner {
         CompoundTag tag = new CompoundTag();
         entity.saveWithoutId(tag);
         for (String key : STRIP) tag.remove(key);
-        tag.putString("id", EntityType.getKey(entity.getType()).toString());
+        // The dragon's body is ours, not vanilla's: hers cannot be told where to fly.
+        EntityType<?> bodyType = entity instanceof EnderDragon ? ModEntities.SHADOW_DRAGON.get() : entity.getType();
+        tag.putString("id", EntityType.getKey(bodyType).toString());
         return tag;
     }
 
