@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import com.bailey.enchantments.BaileysEnchantments;
 
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -54,6 +55,16 @@ public final class ShadowEvents {
     /** Live Umbra clones, pruned as they die. Server-side. */
     private static final List<Mob> TEMPORARY = new ArrayList<>();
 
+    /**
+     * Every live shadow, for the soul aura.
+     *
+     * <p>⚠️ Server-side, sent with {@code sendParticles} so <b>everyone</b> sees it. Bailey,
+     * 2026-09-22: <i>"that soul particle effect we keep using should be on them aswell. These
+     * are things that everyone should see."</i> It used to be drawn per viewer on the client,
+     * so a client that missed the mark packet saw an ordinary mob with no aura at all.
+     */
+    private static final List<Mob> AURAS = new ArrayList<>();
+
     // ---- lifecycle -------------------------------------------------------------------------
 
     @SubscribeEvent
@@ -62,12 +73,41 @@ public final class ShadowEvents {
         if (!(event.getEntity() instanceof Mob mob) || !ShadowData.isShadow(mob)) return;
 
         ShadowAi.install(mob);
+        if (!AURAS.contains(mob)) AURAS.add(mob);
         if (ShadowData.isTemporary(mob) && !TEMPORARY.contains(mob)) TEMPORARY.add(mob);
+    }
+
+    /**
+     * The drifting soul aura, every third tick, for every shadow. Scaled by hitbox, so a dragon
+     * smokes and a chicken wisps.
+     */
+    private static void aura() {
+        if (AURAS.isEmpty()) return;
+        Iterator<Mob> it = AURAS.iterator();
+        while (it.hasNext()) {
+            Mob mob = it.next();
+            if (mob.isRemoved() || !mob.isAlive() || !ShadowData.isShadow(mob)) { it.remove(); continue; }
+            if (!(mob.level() instanceof ServerLevel level)) continue;
+            if (level.getGameTime() % 3 != 0) continue;
+
+            double w = mob.getBbWidth(), h = mob.getBbHeight();
+            int count = Math.max(1, (int) Math.min(6, w * h));
+            level.sendParticles(ParticleTypes.SCULK_SOUL,
+                    mob.getX(), mob.getY() + h * 0.5, mob.getZ(),
+                    count, w * 0.35, h * 0.4, w * 0.35, 0.005);
+            if (level.getGameTime() % 12 == 0) {
+                level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME,
+                        mob.getX(), mob.getY() + h * 0.6, mob.getZ(),
+                        1, w * 0.3, h * 0.3, w * 0.3, 0.0);
+            }
+        }
     }
 
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || TEMPORARY.isEmpty()) return;
+        if (event.phase != TickEvent.Phase.END) return;
+        aura();
+        if (TEMPORARY.isEmpty()) return;
 
         Iterator<Mob> it = TEMPORARY.iterator();
         while (it.hasNext()) {

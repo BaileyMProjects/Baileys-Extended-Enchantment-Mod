@@ -1,3 +1,9 @@
+    // ---- housekeeping ----------------------------------------------------------------------------
+    //
+    // ⚠️ The soul particles used to be spawned here, per viewer. They are now sent by the SERVER
+    // (ShadowEvents.onServerTick) so that everybody sees them, not only clients that have
+    // received the mark packet. Bailey, 2026-09-22: "These are things that everyone should see."
+
 package com.bailey.enchantments.client;
 
 import java.util.HashSet;
@@ -5,16 +11,13 @@ import java.util.Set;
 
 import com.bailey.enchantments.BaileysEnchantments;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderLivingEvent;
-import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityLeaveLevelEvent;
 import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -77,25 +80,12 @@ public final class ShadowRenderClient {
         }
     }
 
-    // ---- particles and housekeeping ------------------------------------------------------------
+    // ---- housekeeping ----------------------------------------------------------------------
+    //
+    // ⚠️ The soul particles used to be spawned here, per viewer. They are now sent by the
+    // SERVER (ShadowEvents.onServerTick) so everybody sees them, not only clients that have
+    // received the mark packet. Bailey, 2026-09-22: "These are things that everyone should see."
 
-    @SubscribeEvent
-    public static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || SHADOWS.isEmpty()) return;
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.isPaused()) return;
-
-        if (mc.level.getGameTime() % 3 != 0) return;
-        for (int id : SHADOWS) {
-            Entity e = mc.level.getEntity(id);
-            if (e == null || !e.isAlive()) continue;
-            if (mc.level.random.nextInt(3) != 0) continue;
-            double x = e.getX() + (mc.level.random.nextDouble() - 0.5) * e.getBbWidth();
-            double y = e.getY() + mc.level.random.nextDouble() * e.getBbHeight();
-            double z = e.getZ() + (mc.level.random.nextDouble() - 0.5) * e.getBbWidth();
-            mc.level.addParticle(ParticleTypes.SCULK_SOUL, x, y, z, 0, 0.01, 0);
-        }
-    }
 
     @SubscribeEvent
     public static void onEntityLeave(EntityLeaveLevelEvent event) {
