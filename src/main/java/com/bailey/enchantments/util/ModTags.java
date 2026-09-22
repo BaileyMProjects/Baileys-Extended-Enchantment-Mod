@@ -38,6 +38,12 @@ public class ModTags {
         // Which mobs count as "deep dark" for the OR rule in DeepDark.bonusApplies.
         public static final TagKey<EntityType<?>> DEEP_DARK_MOBS = TagKey.create(
                 Registries.ENTITY_TYPE, new ResourceLocation(BaileysEnchantments.MODID, "deep_dark_mobs"));
+
+        // Types that can never be raised as shadows, whatever the classifier says. Empty by
+        // default; a pack maker adds a modded boss whose AI misbehaves as a shadow here.
+        // -> Brain/Decisions/The Smite line is the Shadow Monarch.md
+        public static final TagKey<EntityType<?>> UNRAISABLE = TagKey.create(
+                Registries.ENTITY_TYPE, new ResourceLocation(BaileysEnchantments.MODID, "unraisable"));
     }
 
     public static class Biomes {

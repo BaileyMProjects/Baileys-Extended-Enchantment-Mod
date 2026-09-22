@@ -78,6 +78,8 @@
   "enchantment.baileys_enchantments.mirage": "Mirage",
   "enchantment.baileys_enchantments.dissonance": "Dissonance",
   "enchantment.baileys_enchantments.resonance": "Resonance",
+  "enchantment.baileys_enchantments.umbra": "Umbra",
+  "enchantment.baileys_enchantments.requiem": "Requiem",
 
   "enchantment.baileys_enchantments.wither_touch": "Wither's Touch",
   "enchantment.baileys_enchantments.lava_walker": "Lava Walker",
@@ -109,6 +111,8 @@
   "enchantment.baileys_enchantments.mirage.desc": "Speed, attack speed and a chance to evade a hit outright. Scales with pieces worn.",
   "enchantment.baileys_enchantments.dissonance.desc": "Full set only. Hold sneak to phase: flash step inside a fixed zone, but you take far more damage.",
   "enchantment.baileys_enchantments.resonance.desc": "Sonic pulse on hit, and Execute's perks. Right-click to gather and scatter at 20% health.",
+  "enchantment.baileys_enchantments.umbra.desc": "Smite VII against the undead. Kills have a chance to raise a fleeting shadow of the victim that fights for you.",
+  "enchantment.baileys_enchantments.requiem.desc": "Smite VII, and Arise. Sneak-click a fallen foe's remnant to bind its shadow; right-click to deploy your army, sneak-click the air to recall it.",
 
   "baileys_enchantments.configuration.title": "Bailey's Extended Enchantment Mod Configs",
   "baileys_enchantments.configuration.logOnSetup": "Log On Setup"

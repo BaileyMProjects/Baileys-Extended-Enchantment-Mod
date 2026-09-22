@@ -129,6 +129,38 @@ public class ModEnchantments {
      */
     public static final RegistryObject<Enchantment> DISSONANCE = ENCHANTMENTS.register("dissonance",
             () -> new SecretEnchantment(EnchantmentCategory.ARMOR, ARMOR_SLOTS));
+    /**
+     * The Smite line — the Shadow Monarch, designed by Bailey 2026-09-22.
+     *
+     * <p>Smite had no Ultimate, so this is two enchantments. Both carry <b>Smite VII</b> damage
+     * for the same reason Execute carries Sharpness VII: the ritual destroys the maxed Smite V
+     * it upgrades from, and without a replacement the upgrade is a raw downgrade against undead.
+     * Vanilla Smite is {@code level * 2.5} vs undead, verified from the 1.20.1 bytecode.
+     *
+     * <p><b>Umbra</b>: a passive proc. A kill has a chance to raise a temporary shadow clone of
+     * the victim that fights for the killer. <b>Requiem</b>: <i>Arise</i> — chosen kills are
+     * stored and deployed as an army. Behaviour lives in the {@code shadow} package.
+     * → Brain/Decisions/The Smite line is the Shadow Monarch.md
+     */
+    private static final float SMITE_VII_DAMAGE = 7 * 2.5F;
+
+    public static final RegistryObject<Enchantment> UMBRA = ENCHANTMENTS.register("umbra",
+            () -> new UltimateEnchantment(Enchantment.Rarity.VERY_RARE, EnchantmentCategory.WEAPON, EquipmentSlot.MAINHAND) {
+                @Override
+                public float getDamageBonus(int level, MobType type) {
+                    return type == MobType.UNDEAD ? SMITE_VII_DAMAGE : 0.0F;
+                }
+            });
+
+    public static final RegistryObject<Enchantment> REQUIEM = ENCHANTMENTS.register("requiem",
+            () -> new SecretEnchantment(EnchantmentCategory.WEAPON, EquipmentSlot.MAINHAND) {
+                // Gambled FROM Umbra and destroys it, so it keeps Umbra's damage.
+                @Override
+                public float getDamageBonus(int level, MobType type) {
+                    return type == MobType.UNDEAD ? SMITE_VII_DAMAGE : 0.0F;
+                }
+            });
+
     public static final RegistryObject<Enchantment> HOMING = ENCHANTMENTS.register("homing",
             () -> new SimpleModEnchantment(Enchantment.Rarity.RARE, EnchantmentCategory.BOW, 1, EquipmentSlot.MAINHAND));
 

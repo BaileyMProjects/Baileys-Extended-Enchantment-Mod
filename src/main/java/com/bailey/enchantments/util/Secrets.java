@@ -60,6 +60,9 @@ public final class Secrets {
         // for Resonance, and Dissonance keeps Mirage's passives for the same reason: winning
         // must never be a downgrade.
         add(ModEnchantments.MIRAGE.get(), ModEnchantments.DISSONANCE.get());
+
+        // The Shadow Monarch. Umbra is gambled away for Requiem, which keeps Umbra's damage.
+        add(ModEnchantments.UMBRA.get(), ModEnchantments.REQUIEM.get());
     }
 
     private static void add(Enchantment ultimate, Enchantment secret) {

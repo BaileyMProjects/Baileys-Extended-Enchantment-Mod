@@ -51,6 +51,9 @@ public class Ultimates {
         // all four armour pieces or a full Mirage set is unobtainable.
         add(net.minecraft.world.item.enchantment.Enchantments.PROJECTILE_PROTECTION, ModEnchantments.MIRAGE.get());
 
+        // The Smite line. Smite has no boosted cap in OverCaps, so the ritual asks for Smite V.
+        add(net.minecraft.world.item.enchantment.Enchantments.SMITE, ModEnchantments.UMBRA.get());
+
         // Timber had no base enchantment of its own to upgrade from — every vanilla enchant
         // it could plausibly use (Efficiency included) was already claimed above, so it was
         // unobtainable through the Ancient Anvil. It shares Efficiency with Overdrive instead,
