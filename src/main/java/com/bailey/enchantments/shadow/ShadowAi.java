@@ -17,6 +17,11 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.RangedAttackGoal;
 import net.minecraft.world.entity.monster.RangedAttackMob;
+import net.minecraft.world.entity.monster.AbstractSkeleton;
+import net.minecraft.world.entity.monster.Drowned;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ProjectileWeaponItem;
+import net.minecraft.world.item.TridentItem;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 
@@ -53,7 +58,7 @@ public final class ShadowAi {
         // ⚠️ Above the attack goal: a shadow clever enough to run must not be dragged back into
         // the fight by a goal that outranks it.
         mob.goalSelector.addGoal(p++, new ShadowRetreatGoal(mob));
-        if (mob instanceof RangedAttackMob) {
+        if (shouldShoot(mob)) {
             mob.goalSelector.addGoal(p++, rangedGoal(mob));
         }
         mob.goalSelector.addGoal(p++, new ShadowAttackGoal(mob));
@@ -77,6 +82,35 @@ public final class ShadowAi {
         mob.setTarget(target);
         if (target != null) mob.getBrain().setMemory(MemoryModuleType.ATTACK_TARGET, target);
         else mob.getBrain().eraseMemory(MemoryModuleType.ATTACK_TARGET);
+    }
+
+    /**
+     * Should this shadow shoot rather than swing?
+     *
+     * <h3>🐛 Found in play 2026-09-22: a wither skeleton firing arrows with a stone sword</h3>
+     * Implementing {@code RangedAttackMob} is <b>not</b> the same as being able to shoot. The
+     * whole skeleton family inherits it, wither skeletons included, and vanilla resolves this at
+     * runtime in {@code AbstractSkeleton.reassessWeaponGoal} by looking at what the mob is
+     * actually holding. Worse, {@code performRangedAttack} conjures an arrow whether or not there
+     * is a bow — so the wrong goal does not fail, it fires.
+     *
+     * <p>So: shoot if <b>holding</b> something to shoot with. A mob that shoots with no weapon at
+     * all — a witch's potions, a snow golem's snowballs, an illusioner's magic — is allowed to,
+     * but only if its hands are empty, and only if it is not from a family that needs a weapon.
+     */
+    private static boolean shouldShoot(Mob mob) {
+        if (!(mob instanceof RangedAttackMob)) return false;
+
+        ItemStack weapon = mob.getMainHandItem();
+        if (weapon.getItem() instanceof ProjectileWeaponItem || weapon.getItem() instanceof TridentItem) {
+            return true;
+        }
+
+        // ⚠️ These two fabricate ammunition they do not have. A skeleton with a sword must swing
+        // it, and an empty-handed drowned must not throw phantom tridents.
+        if (mob instanceof AbstractSkeleton || mob instanceof Drowned) return false;
+
+        return weapon.isEmpty();
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
