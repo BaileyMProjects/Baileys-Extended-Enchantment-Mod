@@ -67,6 +67,8 @@ public class ShadowArmyScreen extends Screen {
     private static final int PREVIEW = 36;
     private static final int BTN_W = 54;
     private static final int BTN_H = 13;
+    private static final int PIPS = 5;
+    private static final int PIP_STEP = 5;
 
     private static ShadowArmyScreen open;
     private static ArmyRosterPayload latest;
@@ -272,25 +274,36 @@ public class ShadowArmyScreen extends Screen {
             g.disableScissor();
         }
 
-        // Text
+        // Text.
+        // ⚠️ Everything on the left is clipped to end before the pips and the buttons. The tier
+        // line grew a level prefix and promptly ran underneath the intelligence pips; a fixed
+        // layout that only fits the short names is not a layout.
         int tx = px + PREVIEW + 8;
+        int pipX = left + W - 8 - BTN_W - 8 - PIPS * PIP_STEP;
+        int textRight = pipX - 6;
+
         if (renaming == null || !renaming.equals(row.id())) {
-            g.drawString(font, row.name(), tx, y + 6, TEXT, true);
+            g.drawString(font, trim(row.name(), textRight - tx - 26), tx, y + 6, TEXT, true);
         }
-        String tier = "Lv " + row.level() + "  " + tierName(row.tier()) + " 00b7 " + row.slots()
-                + (row.slots() == 1 ? " slot" : " slots");
-        g.drawString(font, tier, tx, y + 17, TEXT_DIM, false);
+        // The soldier's own level, right-aligned above its pips, away from the name.
+        String lvl = "Lv " + row.level();
+        g.drawString(font, lvl, pipX + PIPS * PIP_STEP - font.width(lvl) - 1, y + 6,
+                row.level() >= 50 ? OK : ACCENT, false);
+
+        String tier = tierName(row.tier()) + " · " + row.slots() + (row.slots() == 1 ? " slot" : " slots");
+        g.drawString(font, trim(tier, textRight - tx), tx, y + 17, TEXT_DIM, false);
 
         // Intelligence as pips, so "this one has learned things" reads without a number.
-        int pipX = left + W - 8 - BTN_W - 6 - 5 * 5;
-        for (int i = 0; i < 5; i++) {
-            g.fill(pipX + i * 5, y + 18, pipX + i * 5 + 3, y + 21, i < row.intelligence() ? ACCENT : ACCENT_DIM);
+        for (int i = 0; i < PIPS; i++) {
+            g.fill(pipX + i * PIP_STEP, y + 17, pipX + i * PIP_STEP + 3, y + 20,
+                    i < row.intelligence() ? ACCENT : ACCENT_DIM);
         }
 
         if (row.deployed()) {
             g.drawString(font, "●", tx, y + 28, OK, false);
             String hp = (int) Math.ceil(row.health()) + "/" + (int) Math.ceil(row.maxHealth());
-            g.drawString(font, Component.translatable("baileys_enchantments.army.deployed").getString() + "  " + hp, tx + 8, y + 28, TEXT_DIM, false);
+            g.drawString(font, trim(Component.translatable("baileys_enchantments.army.deployed").getString()
+                    + "  " + hp, textRight - tx - 8), tx + 8, y + 28, TEXT_DIM, false);
             int barW = 70, barX = tx;
             float f = row.maxHealth() > 0 ? Mth.clamp(row.health() / row.maxHealth(), 0, 1) : 0;
             g.fill(barX, y + 37, barX + barW, y + 39, ACCENT_DIM);
@@ -298,18 +311,19 @@ public class ShadowArmyScreen extends Screen {
         } else if (row.maxHealth() > 0 && row.health() < row.maxHealth()) {
             // Mending in the blade. Bailey wanted a Pokemon-style cooldown rather than a loss.
             boolean down = row.health() <= 0.01F;
-            g.drawString(font, down ? "2716" : "25d1", tx, y + 28, down ? DANGER : TEXT_DIM, false);
+            g.drawString(font, down ? "✖" : "◑", tx, y + 28, down ? DANGER : TEXT_DIM, false);
             String label = Component.translatable(down ? "baileys_enchantments.army.downed"
                     : "baileys_enchantments.army.mending").getString();
-            g.drawString(font, label + "  " + (int) (100 * row.health() / row.maxHealth()) + "%",
-                    tx + 8, y + 28, row.ready() ? TEXT_DIM : DANGER, false);
+            g.drawString(font, trim(label + "  " + (int) (100 * row.health() / row.maxHealth()) + "%",
+                    textRight - tx - 8), tx + 8, y + 28, row.ready() ? TEXT_DIM : DANGER, false);
             int barW = 70, barX = tx;
             float f = Mth.clamp(row.health() / row.maxHealth(), 0, 1);
             g.fill(barX, y + 37, barX + barW, y + 39, ACCENT_DIM);
             g.fill(barX, y + 37, barX + (int) (barW * f), y + 39, row.ready() ? ACCENT : DANGER);
         } else {
-            g.drawString(font, "25cb", tx, y + 28, TEXT_DIM, false);
-            g.drawString(font, Component.translatable("baileys_enchantments.army.stored").getString(), tx + 8, y + 28, TEXT_DIM, false);
+            g.drawString(font, "○", tx, y + 28, TEXT_DIM, false);
+            g.drawString(font, trim(Component.translatable("baileys_enchantments.army.stored").getString(),
+                    textRight - tx - 8), tx + 8, y + 28, TEXT_DIM, false);
         }
 
         // Buttons
@@ -351,6 +365,21 @@ public class ShadowArmyScreen extends Screen {
 
     private static boolean hit(int mx, int my, int x, int y, int w, int h) {
         return mx >= x && mx < x + w && my >= y && my < y + h;
+    }
+
+    /**
+     * Cut a string to fit, with an ellipsis. ⚠️ Every left-hand label goes through this: the
+     * panel is a fixed width and a soldier can be named anything up to 24 characters, so
+     * "it fits the names I tried" is not a layout.
+     */
+    private String trim(String text, int maxWidth) {
+        if (maxWidth <= 0) return "";
+        if (font.width(text) <= maxWidth) return text;
+        String out = text;
+        while (!out.isEmpty() && font.width(out + "...") > maxWidth) {
+            out = out.substring(0, out.length() - 1);
+        }
+        return out.isEmpty() ? "" : out + "...";
     }
 
     private static String tierName(int tier) {
