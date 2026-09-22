@@ -101,6 +101,11 @@ public class ShadowPlayer extends PathfinderMob {
         return entityData.get(PROFILE_NAME);
     }
 
+    /** Client-side only: give a roster preview the right skin. */
+    public void setProfileForPreview(String name) {
+        entityData.set(PROFILE_NAME, name);
+    }
+
     @Nullable
     public UUID profileId() {
         return entityData.get(PROFILE_ID).orElse(null);

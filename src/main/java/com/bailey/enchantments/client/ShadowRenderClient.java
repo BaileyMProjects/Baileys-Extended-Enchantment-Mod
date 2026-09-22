@@ -43,6 +43,9 @@ public final class ShadowRenderClient {
     private static final Set<Integer> SHADOWS = new HashSet<>();
     private static boolean rendering;
 
+    /** Set by the army screen while it draws a roster preview, so the preview is tinted too. */
+    public static boolean previewTint;
+
     public static void mark(int entityId) {
         SHADOWS.add(entityId);
     }
@@ -57,7 +60,7 @@ public final class ShadowRenderClient {
     public static <T extends LivingEntity, M extends EntityModel<T>> void onRenderPre(RenderLivingEvent.Pre<T, M> event) {
         if (rendering) return;
         LivingEntity entity = event.getEntity();
-        if (!SHADOWS.contains(entity.getId())) return;
+        if (!previewTint && !SHADOWS.contains(entity.getId())) return;
 
         LivingEntityRenderer<T, M> renderer = event.getRenderer();
         @SuppressWarnings("unchecked")

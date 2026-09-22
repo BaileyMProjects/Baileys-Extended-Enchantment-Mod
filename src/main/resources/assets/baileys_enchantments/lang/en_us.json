@@ -128,6 +128,28 @@
   "baileys_enchantments.requiem.deployed": "%s shadows answer.",
   "baileys_enchantments.requiem.recalled": "%s shadows return to you.",
   "baileys_enchantments.requiem.fallen": "%s has fallen.",
+  "baileys_enchantments.requiem.no_weapon": "You hold no Requiem, and have no shadows.",
+
+  "key.categories.baileys_enchantments": "Bailey's Extended Enchantments",
+  "key.baileys_enchantments.shadow_army": "Open Shadow Army",
+
+  "baileys_enchantments.army.title": "SHADOW ARMY",
+  "baileys_enchantments.army.empty": "No shadows bound. Kill, then Arise.",
+  "baileys_enchantments.army.deployed": "Deployed",
+  "baileys_enchantments.army.stored": "Stored",
+  "baileys_enchantments.army.deploy": "Deploy",
+  "baileys_enchantments.army.recall": "Recall",
+  "baileys_enchantments.army.release": "Release",
+  "baileys_enchantments.army.sure": "Sure?",
+  "baileys_enchantments.army.deploy_all": "Deploy all",
+  "baileys_enchantments.army.recall_all": "Recall all",
+  "baileys_enchantments.army.stance": "Stance",
+  "baileys_enchantments.army.stance.guard": "Guard",
+  "baileys_enchantments.army.stance.passive": "Passive",
+  "baileys_enchantments.army.stance.aggressive": "Aggressive",
+  "baileys_enchantments.army.stance.guard.tip": "Fights what fights you, and what you fight.",
+  "baileys_enchantments.army.stance.passive.tip": "Follows only. Never attacks.",
+  "baileys_enchantments.army.stance.aggressive.tip": "Also attacks any hostile nearby, unprovoked.",
 
   "baileys_enchantments.configuration.title": "Bailey's Extended Enchantment Mod Configs",
   "baileys_enchantments.configuration.logOnSetup": "Log On Setup"

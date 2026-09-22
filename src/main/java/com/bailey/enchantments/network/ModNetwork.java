@@ -56,6 +56,18 @@ public final class ModNetwork {
                 ShadowMarkPayload::decode,
                 ShadowMarkPayload::handle);
 
+        CHANNEL.registerMessage(id++,
+                ArmyActionPayload.class,
+                ArmyActionPayload::encode,
+                ArmyActionPayload::decode,
+                ArmyActionPayload::handle);
+
+        CHANNEL.registerMessage(id++,
+                ArmyRosterPayload.class,
+                ArmyRosterPayload::encode,
+                ArmyRosterPayload::decode,
+                ArmyRosterPayload::handle);
+
         // The rite tells its one viewer when to start and how it went.
         AriseRitual.setCutsceneSender(new AriseRitual.CutsceneSender() {
             @Override
@@ -68,6 +80,11 @@ public final class ModNetwork {
                 sendToPlayer(AriseCutscenePayload.end(success), player);
             }
         });
+    }
+
+    /** Client to server. */
+    public static void sendToServer(Object msg) {
+        CHANNEL.sendToServer(msg);
     }
 
     /** Server to one client. Used for the Secret-name reveal flag. */
