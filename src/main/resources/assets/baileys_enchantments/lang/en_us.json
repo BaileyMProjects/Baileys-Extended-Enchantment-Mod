@@ -151,6 +151,8 @@
   "baileys_enchantments.secret.needs_set": "Wear the full set to unlock",
   "baileys_enchantments.tooltip.hold_shift": "Hold SHIFT for details",
   "baileys_enchantments.dissonance.needs_set": "Dissonance sleeps: %s of 4 pieces bear it.",
+  "baileys_enchantments.dissonance.on": "Phased. Keep sneaking; right-click to flash.",
+  "baileys_enchantments.dissonance.spent": "Dissonance is spent — %ss.",
   "baileys_enchantments.immortal.no_set": "Immortal sleeps until all four pieces bear it.",
   "baileys_enchantments.immortal.on": "Nothing can touch you.",
   "baileys_enchantments.immortal.off": "The ward fades.",

@@ -86,6 +86,17 @@ public final class MirageEvents {
     /** Where each active mode was anchored. ⚠️ Set once on entry and never updated. */
     private static final Map<UUID, BlockPos> ZONE_ANCHOR = new HashMap<>();
 
+    /** Game time each mode was entered, for the grace window below. */
+    private static final Map<UUID, Long> MODE_SINCE = new HashMap<>();
+
+    /**
+     * How long after entering the mode a release of sneak is forgiven.
+     *
+     * ⚠️ One second. Long enough to cover the human gap between clicking and letting go of
+     * shift, short enough that it cannot be used to dodge the exit penalty deliberately.
+     */
+    private static final long ENTRY_GRACE = 20L;
+
     /** Last seen main-hand item, so a swap can start the teleport lockout. */
     private static final Map<UUID, Item> LAST_HELD = new HashMap<>();
 
@@ -193,7 +204,21 @@ public final class MirageEvents {
         }
 
         if (!player.isShiftKeyDown()) {
-            endMode(serverPlayer, true);
+            // 🐛 THE GRACE WINDOW, AND WHY IT HAS TO EXIST. Found in play 2026-09-22: Bailey
+            // had the full set and an empty hand and reported the ability "just was not
+            // working". It was working — for about three ticks.
+            //
+            // The mode is HELD by sneaking, but it is ENTERED with a sneak-CLICK, and a human
+            // releases shift the instant the click lands. The tick below then saw "not
+            // sneaking", ended the mode, and charged the 30-second penalty for leaving
+            // voluntarily — so the act of switching it on punished you, and every attempt for
+            // the next half minute failed in silence.
+            //
+            // Releasing within the grace window is a mis-click, not a decision: the mode ends
+            // with NO penalty. Past it, Bailey's rule stands — "If the player unshifts it also
+            // adds a 30 second timer."
+            long held = player.level().getGameTime() - MODE_SINCE.getOrDefault(player.getUUID(), 0L);
+            endMode(serverPlayer, held >= ENTRY_GRACE);
             return;
         }
 
@@ -363,7 +388,17 @@ public final class MirageEvents {
         }
 
         if (!player.isShiftKeyDown()) return;
-        if (now < TOGGLE_READY.getOrDefault(player.getUUID(), 0L)) return;
+
+        // ⚠️ The lockout has to be visible. A silent refusal for thirty seconds is exactly what
+        // made this read as broken — see the grace window in onTick for the rest of that story.
+        long ready = TOGGLE_READY.getOrDefault(player.getUUID(), 0L);
+        if (now < ready) {
+            player.displayClientMessage(Component.translatable(
+                    "baileys_enchantments.dissonance.spent", (ready - now) / 20 + 1)
+                    .withStyle(ChatFormatting.GRAY), true);
+            event.setCanceled(true);
+            return;
+        }
 
         beginMode(player);
         event.setCanceled(true);
@@ -374,6 +409,12 @@ public final class MirageEvents {
         BlockPos anchor = player.blockPosition();
         MODE_ON.put(player.getUUID(), true);
         ZONE_ANCHOR.put(player.getUUID(), anchor);
+        MODE_SINCE.put(player.getUUID(), player.level().getGameTime());
+
+        // ⚠️ Say so. The mode's only other tell is a particle burst, which is easy to miss and
+        // was part of why this read as "not working" at all.
+        player.displayClientMessage(Component.translatable("baileys_enchantments.dissonance.on")
+                .withStyle(ChatFormatting.DARK_AQUA), true);
 
         ServerLevel level = player.serverLevel();
         level.playSound(null, player.blockPosition(), SoundEvents.SCULK_SHRIEKER_SHRIEK,
@@ -395,6 +436,7 @@ public final class MirageEvents {
     private static void endMode(ServerPlayer player, boolean penalise) {
         MODE_ON.remove(player.getUUID());
         ZONE_ANCHOR.remove(player.getUUID());
+        MODE_SINCE.remove(player.getUUID());
 
         if (penalise) {
             TOGGLE_READY.put(player.getUUID(),
