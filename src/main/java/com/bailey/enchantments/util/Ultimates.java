@@ -54,6 +54,9 @@ public class Ultimates {
         // The Smite line. Smite has no boosted cap in OverCaps, so the ritual asks for Smite V.
         add(net.minecraft.world.item.enchantment.Enchantments.SMITE, ModEnchantments.UMBRA.get());
 
+        // Shortbow. Flame is the last unclaimed bow enchantment; Flame I is its own ceiling.
+        add(net.minecraft.world.item.enchantment.Enchantments.FLAMING_ARROWS, ModEnchantments.SHORTBOW.get());
+
         // Timber had no base enchantment of its own to upgrade from — every vanilla enchant
         // it could plausibly use (Efficiency included) was already claimed above, so it was
         // unobtainable through the Ancient Anvil. It shares Efficiency with Overdrive instead,

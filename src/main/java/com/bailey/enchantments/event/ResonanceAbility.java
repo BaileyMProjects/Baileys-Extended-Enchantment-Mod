@@ -9,6 +9,8 @@ import java.util.UUID;
 
 import com.bailey.enchantments.BaileysEnchantments;
 import com.bailey.enchantments.enchantment.ModEnchantments;
+import com.bailey.enchantments.util.DeepDarkBalance;
+import com.bailey.enchantments.util.ItemCooldown;
 
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -58,8 +60,13 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber(modid = BaileysEnchantments.MODID)
 public final class ResonanceAbility {
 
-    /** Two minutes, Bailey's number. The move stuns a chunk and sets it to execute range. */
-    private static final int COOLDOWN_TICKS = 2400;
+    /**
+     * Two minutes, Bailey's number. The move stuns a chunk and sets it to execute range.
+     *
+     * <p>⚠️ Read from {@link DeepDarkBalance} rather than held here, because the cooldown
+     * overlay needs the same number to work out how much of the sweep to draw.
+     */
+    private static final int COOLDOWN_TICKS = DeepDarkBalance.RESONANCE_COOLDOWN;
 
     /** The gather. Long enough to watch, short enough not to be a cutscene. */
     private static final int GATHER_TICKS = 30;
@@ -86,14 +93,32 @@ public final class ResonanceAbility {
 
     private ResonanceAbility() {}
 
+    /**
+     * A running cast. It has two halves, and the difference between them matters:
+     *
+     * <ol>
+     *   <li><b>The charge</b>, {@link DeepDarkBalance#RESONANCE_CHARGE_TICKS} long. The chunk is
+     *       outlined for everyone, the caster is rooted, and — ✅ Bailey, 2026-09-22 — <b>the
+     *       caster is vulnerable</b>. This is the window in which the move can be answered, and
+     *       in which anyone standing in the marked chunk can simply walk out of it.
+     *   <li><b>The gather and scatter</b>, as before, with the caster immune.
+     * </ol>
+     */
     private static final class Active {
         final ServerLevel level;
         final UUID casterId;
+        final ChunkPos chunk;
+        int charge;
         int tick;
 
-        Active(ServerLevel level, UUID casterId) {
+        Active(ServerLevel level, UUID casterId, ChunkPos chunk) {
             this.level = level;
             this.casterId = casterId;
+            this.chunk = chunk;
+        }
+
+        boolean charging() {
+            return charge < DeepDarkBalance.RESONANCE_CHARGE_TICKS;
         }
     }
 
@@ -108,9 +133,14 @@ public final class ResonanceAbility {
         ItemStack held = event.getItemStack();
         if (!(held.getItem() instanceof SwordItem)) return;
         if (EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.RESONANCE.get(), held) <= 0) return;
-        if (player.getCooldowns().isOnCooldown(held.getItem())) return;
+        // ⚠️ Per-item, not per-item-type. Using the sword's own NBT means this sword is on
+        // cooldown and every other netherite sword is not. -> ItemCooldown
+        if (ItemCooldown.isOnCooldown(held, ItemCooldown.Abilities.RESONANCE, player)) return;
+        for (Active running : RUNNING) {
+            if (running.casterId.equals(caster.getUUID())) return;
+        }
 
-        player.getCooldowns().addCooldown(held.getItem(), COOLDOWN_TICKS);
+        ItemCooldown.set(held, ItemCooldown.Abilities.RESONANCE, player, COOLDOWN_TICKS);
         begin(caster);
         event.setCanceled(true);
     }
@@ -118,9 +148,8 @@ public final class ResonanceAbility {
     private static void begin(ServerPlayer caster) {
         ServerLevel level = caster.serverLevel();
 
-        // Immunity covers the gather plus a short tail, so the caster is never dropped out of
-        // protection a tick before the scatter lands.
-        IMMUNE_UNTIL.put(caster.getUUID(), level.getGameTime() + GATHER_TICKS + 10L);
+        // ⚠️ NO IMMUNITY YET. It is granted when the charge completes — the whole point of the
+        // build-up is that the caster can be interrupted and punished during it.
 
         // The Warden's own charge-up. It is literally the sound of a sonic boom being wound
         // up, which is exactly what this is.
@@ -129,7 +158,10 @@ public final class ResonanceAbility {
         level.playSound(null, caster.blockPosition(), SoundEvents.SCULK_SHRIEKER_SHRIEK,
                 SoundSource.PLAYERS, 0.8F, 1.4F);
 
-        RUNNING.add(new Active(level, caster.getUUID()));
+        // ⚠️ The chunk is fixed AT THE START. The victim set is recomputed from the caster's
+        // current chunk each tick, so without pinning it a caster could stroll to a chunk
+        // border mid-charge and catch a different area than the one everyone was shown.
+        RUNNING.add(new Active(level, caster.getUUID(), new ChunkPos(caster.blockPosition())));
     }
 
     // ---- the move --------------------------------------------------------------------
@@ -153,9 +185,21 @@ public final class ResonanceAbility {
 
     private static boolean advance(Active a) {
         Player caster = a.level.getPlayerByUUID(a.casterId);
-        if (caster == null || caster.isRemoved()) return true;
+        if (caster == null || caster.isRemoved() || !caster.isAlive()) return true;
 
-        List<LivingEntity> victims = victims(a.level, caster);
+        if (a.charging()) {
+            charge(a, caster);
+            a.charge++;
+            // The moment the charge lands, the caster becomes untouchable for the rest of it.
+            if (!a.charging()) {
+                IMMUNE_UNTIL.put(a.casterId, a.level.getGameTime() + GATHER_TICKS + 10L);
+                a.level.playSound(null, caster.blockPosition(), SoundEvents.WARDEN_SONIC_BOOM,
+                        SoundSource.PLAYERS, 0.7F, 1.6F);
+            }
+            return false;
+        }
+
+        List<LivingEntity> victims = victims(a.level, a.chunk, caster);
 
         if (a.tick >= GATHER_TICKS) {
             scatter(a.level, caster, victims);
@@ -168,6 +212,49 @@ public final class ResonanceAbility {
     }
 
     /**
+     * The build-up: the caster is rooted and the chunk is outlined for <b>everyone</b>.
+     *
+     * <p>⚠️ Server particles, not client ones. Dissonance's zone is drawn only for its owner
+     * because hiding it is the point there; here the opposite is true — Bailey wanted the move
+     * <i>"evadable as it is an extremely broken ability"</i>, and you cannot evade a boundary
+     * you cannot see.
+     */
+    private static void charge(Active a, Player caster) {
+        stun(caster);
+
+        float progress = (float) a.charge / DeepDarkBalance.RESONANCE_CHARGE_TICKS;
+
+        // The pillar on the caster, thickening as it winds up.
+        a.level.sendParticles(ParticleTypes.SCULK_CHARGE_POP,
+                caster.getX(), caster.getY() + 1.0, caster.getZ(),
+                1 + (int) (progress * 5), 0.4, 0.8, 0.4, 0.02);
+
+        // The wall, every other tick. Drawn at the caster's own height so it reads as a volume
+        // rather than a line on the floor, and sparse enough not to be a fog bank.
+        if (a.charge % 2 == 0) {
+            int minX = a.chunk.getMinBlockX(), maxX = a.chunk.getMaxBlockX() + 1;
+            int minZ = a.chunk.getMinBlockZ(), maxZ = a.chunk.getMaxBlockZ() + 1;
+            double y = caster.getY() + 0.2;
+            for (int i = 0; i < 16; i += 2) {
+                edge(a.level, minX + i, y, minZ, progress);
+                edge(a.level, minX + i, y, maxZ, progress);
+                edge(a.level, minX, y, minZ + i, progress);
+                edge(a.level, maxX, y, minZ + i, progress);
+            }
+        }
+
+        if (a.charge % 10 == 0) {
+            a.level.playSound(null, caster.blockPosition(), SoundEvents.SCULK_CLICKING,
+                    SoundSource.PLAYERS, 1.0F, 0.6F + progress * 0.8F);
+        }
+    }
+
+    /** One post of the boundary wall, rising as the charge nears its end. */
+    private static void edge(ServerLevel level, double x, double y, double z, float progress) {
+        level.sendParticles(ParticleTypes.SCULK_SOUL, x, y, z, 1, 0.0, 0.6 + progress * 1.4, 0.0, 0.0);
+    }
+
+    /**
      * Everything living in the caster's own chunk, within the vertical reach.
      *
      * ⚠️ Chunk-bounded on purpose, not radius-bounded — Bailey asked for "the chunk they are
@@ -175,8 +262,7 @@ public final class ResonanceAbility {
      * which is unusual but is what was specified, and it gives the ability a readable footprint
      * on the F3 grid rather than an invisible sphere.
      */
-    private static List<LivingEntity> victims(ServerLevel level, Player caster) {
-        ChunkPos chunk = new ChunkPos(caster.blockPosition());
+    private static List<LivingEntity> victims(ServerLevel level, ChunkPos chunk, Player caster) {
         AABB box = new AABB(
                 chunk.getMinBlockX(), caster.getY() - VERTICAL_REACH, chunk.getMinBlockZ(),
                 chunk.getMaxBlockX() + 1, caster.getY() + VERTICAL_REACH, chunk.getMaxBlockZ() + 1);

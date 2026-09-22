@@ -26,6 +26,28 @@ public final class DeepDarkBalance {
     public static final int SCULKBANE_MAX_LEVEL = 5;
     public static final float SCULKBANE_DAMAGE_PER_LEVEL = 6.0F;
 
+    /**
+     * ✅ REWORKED 2026-09-22. Damage Sculkbane gives <b>everywhere</b>, per level.
+     *
+     * <p>🔴 The old design was a trap. Sculkbane supersedes the whole Sharpness family, so a
+     * Sculkbane sword was strictly <b>worse than a plain Sharpness VI sword</b> in every place
+     * but one biome — and the "or against a deep dark mob" clause added nothing, because the
+     * tag holds only the Warden and the Warden only spawns there. The rational play was a
+     * dedicated sword in a chest, which is not a parallel ladder.
+     *
+     * <p>Bailey chose direction A: a baseline everywhere plus the specialist bonus on top.
+     * +1/level puts Sculkbane V at +5 against boosted Sharpness VI's +3.5 — a little better,
+     * as it should be for something this much harder to obtain — and {@link
+     * #SCULKBANE_DAMAGE_PER_LEVEL} still stacks on top in the deep, for +35 at V.
+     */
+    public static final float SCULKBANE_BASE_DAMAGE_PER_LEVEL = 1.0F;
+
+    /**
+     * What Shatter adds everywhere, on the same reasoning. Matches the Sharpness VII that
+     * Execute and Umbra carry, so the deep ladder's Ultimate is never a downgrade either.
+     */
+    public static final float SHATTER_BASE_DAMAGE = 4.0F;
+
     // ---- Deepward (Phase 2) --------------------------------------------------------
     public static final int DEEPWARD_MAX_LEVEL = 4;
 
@@ -40,8 +62,44 @@ public final class DeepDarkBalance {
     // IV worth 160% before clamping and every level after the first meaningless.
     public static final float DEEPWARD_REDUCTION_PER_LEVEL = 0.10F;
 
+    /**
+     * ✅ REWORKED 2026-09-22. Reduction Deepward gives <b>everywhere</b>, per level at a full set.
+     *
+     * <p>🔴 <b>This was the real reason the Warden fight was so hard.</b> Bailey, having worn the
+     * full corrupted set with the enchantments: <i>"It was still really hard to kill the warden
+     * with a full set of corrupted armour with the enchantments and I died without an enchanted
+     * golden apple."</i> The cause was not tuning. Deepward IV gave <b>40%</b>, only in the Deep
+     * Dark — while the boosted Protection VI it <b>replaces</b> gives <b>80%</b>, everywhere. So
+     * putting on the deep ladder's armour halved his mitigation, in its own biome.
+     *
+     * <p>20% per level at a full set means Deepward IV lands on <b>80%</b>, exactly matching the
+     * Protection VI ceiling, and {@link #DEEPWARD_REDUCTION_PER_LEVEL} adds its 40% on top in the
+     * deep — clamped by {@link #MAX_TOTAL_REDUCTION} to 90%.
+     */
+    public static final float DEEPWARD_BASE_REDUCTION_PER_LEVEL = 0.20F;
+
+    /**
+     * Armour toughness per Deepward level, per piece — the "better armour buffs" Bailey asked
+     * for. A full set of IV is +8, beside netherite's own 12. Toughness rather than armour
+     * points because the damage formula ignores armour past 20, which netherite already reaches.
+     */
+    public static final double DEEPWARD_TOUGHNESS_PER_LEVEL = 0.5;
+
     // ---- Corrupted armor set bonuses (Phase 6) -------------------------------------
     // Full set only. Applied on top of armor points, which are netherite-identical.
+    /**
+     * ✅ <b>The full corrupted set is now IMMUNE to the sonic boom</b> — Bailey, 2026-09-22:
+     * <i>"on the armor it should make you immune to the Wardens Sonic Boom."</i> The set alone,
+     * with no Deepward required.
+     *
+     * <p>⚠️ <b>This supersedes an earlier explicit call.</b> "Very easy, NOT immune" was decided
+     * deliberately, and {@link #MAX_TOTAL_REDUCTION} exists to enforce it. The line is narrower
+     * than it looks: this is immunity to <b>one attack</b>, not to damage. The Warden's melee
+     * still lands for full, and the 90% ceiling still governs everything else. Kept as a
+     * separate flag rather than a 1.0 reduction so nothing has to special-case the clamp.
+     */
+    public static final boolean SET_SONIC_BOOM_IMMUNE = true;
+
     public static final float SET_SONIC_BOOM_REDUCTION = 0.40F;
     public static final float SET_DEEP_DARK_DAMAGE_REDUCTION = 0.10F;
     public static final float SET_SPEED_BONUS = 0.10F;
@@ -90,6 +148,25 @@ public final class DeepDarkBalance {
     // HEART: you need more templates than Hearts, so the Heart dials are nearly inert in the
     // easier direction. The template is shared with every Ultimate — see Open decisions #18.
     public static final float SECRET_SUCCESS_CHANCE = 0.50F;
+
+    /**
+     * ✅ <b>Weapon Secrets roll at 20%, armour Secrets at 50%</b> — Bailey, 2026-09-22:
+     * <i>"Make the odds for a weapon secret 20% to balance out against armor."</i>
+     *
+     * <p>The asymmetry is the point. An <b>armour</b> Secret has to be won on <b>all four
+     * pieces</b> before it does anything, so a 50% roll is really four 50% rolls and the ritual
+     * is run four times over. A <b>weapon</b> Secret is one item, one win, done — so a flat 50%
+     * made the whole weapon line roughly four times cheaper than the armour line for the same
+     * tier of power. 20% brings the expected cost of a finished weapon Secret into the same
+     * region as a finished set.
+     */
+    public static final float WEAPON_SECRET_SUCCESS_CHANCE = 0.20F;
+
+    /** The roll for a Secret, which depends on what it goes on. */
+    public static float secretChance(net.minecraft.world.item.enchantment.Enchantment secret) {
+        return secret.category == net.minecraft.world.item.enchantment.EnchantmentCategory.WEAPON
+                ? WEAPON_SECRET_SUCCESS_CHANCE : SECRET_SUCCESS_CHANCE;
+    }
 
 
     // ---- Mirage and Dissonance (the evasion armour line) ---------------------------
@@ -166,6 +243,28 @@ public final class DeepDarkBalance {
     // Bailey's. For scale: it puts a netherite sword at ~53 per hit against a 500 HP Warden,
     // about 10 hits, against Sculkbane V's ~38 and ~14. Silence has no number to tune — it is
     // absolute by design.
+    // ---- ability timings -------------------------------------------------------------------
+
+    /** Resonance's cooldown. Bailey's number, from the original design. */
+    public static final int RESONANCE_COOLDOWN = 2400;
+
+    /**
+     * ✅ Resonance's build-up, added 2026-09-22. Bailey: <i>"I want there to be a 3 second build
+     * up to the resonance ability. Mark out its area of effect... give a charge up time so that
+     * it is evadable as it is an extremely broken ability. And make the player vulnerable during
+     * that build up but not the pull in or shoot out animation."</i>
+     */
+    public static final int RESONANCE_CHARGE_TICKS = 60;
+
+    /** Immortal's ward: untouchable, but slow and feeble. */
+    public static final int IMMORTAL_DURATION = 600;
+    public static final int IMMORTAL_COOLDOWN = 2400;
+    public static final float IMMORTAL_SLOW = 0.5F;
+    public static final float IMMORTAL_DAMAGE_DEALT = 0.5F;
+
+    /** Between Shortbow shots. Short — the whole point is that there is no draw. */
+    public static final int SHORTBOW_COOLDOWN = 8;
+
     public static final float SHATTER_DAMAGE_BONUS = 45.0F;
     public static final float RESONANCE_PULSE_DAMAGE = 6.0F;
     public static final double RESONANCE_PULSE_RADIUS = 4.0D;

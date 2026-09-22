@@ -8,6 +8,8 @@ import com.bailey.enchantments.util.SecretReveal;
 import com.bailey.enchantments.util.Secrets;
 import com.bailey.enchantments.util.Ultimates;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
@@ -15,6 +17,8 @@ import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.EnchantmentCategory;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -54,24 +58,77 @@ public class UltimateTooltipHandler {
 
         List<Component> tooltip = event.getToolTip();
         for (Enchantment ench : enchantments.keySet()) {
-            if (!Ultimates.isUltimate(ench)) continue;
-
             ResourceLocation key = ForgeRegistries.ENCHANTMENTS.getKey(ench);
-            if (key == null) continue;
+            // ✅ EVERY enchantment of ours gets a description, not only the Ultimates — Bailey,
+            // 2026-09-22: "lets make all of the descriptions more detailed for everything."
+            // Venom, Vein Miner and the rest had descriptions written and never shown, because
+            // this loop skipped anything that was not an Ultimate.
+            if (key == null || !key.getNamespace().equals(BaileysEnchantments.MODID)) continue;
+            boolean ultimate = Ultimates.isUltimate(ench);
             String translationKey = "enchantment." + key.getNamespace() + "." + key.getPath();
 
             String plainName = ench.getFullname(enchantments.get(ench)).getString();
             for (int i = 0; i < tooltip.size(); i++) {
                 if (tooltip.get(i).getString().equals(plainName)) {
-                    tooltip.set(i, Secrets.isSecret(ench)
-                            ? secretName(translationKey)
-                            : Component.translatable(translationKey).withStyle(ULTIMATE_STYLE));
-                    tooltip.add(i + 1, Component.translatable(translationKey + ".desc").withStyle(DESC_STYLE));
+                    // Only the top tiers are recoloured. An ordinary mod enchantment keeps
+                    // vanilla's grey name and simply gains a line under it.
+                    if (ultimate) {
+                        tooltip.set(i, Secrets.isSecret(ench)
+                                ? secretName(translationKey)
+                                : Component.translatable(translationKey).withStyle(ULTIMATE_STYLE));
+                    }
+                    tooltip.add(i + 1, description(ench, translationKey));
                     break;
                 }
             }
         }
     }
+
+    /**
+     * The description line under an enchantment's name.
+     *
+     * <p>✅ <b>An armour Secret's description is scrambled until the full set is worn</b> —
+     * Bailey, 2026-09-22: <i>"make armour secret enchantments have the scribbled animation on
+     * the writing until the user gets the full set and have the description tell you to get the
+     * full set to unlock."</i>
+     *
+     * <p>So the line reads as an unreadable smear with one legible instruction after it. That is
+     * the honest signal: an armour Secret genuinely does <b>nothing at all</b> until all four
+     * pieces carry it, and a player wearing one piece needs to be told that rather than left to
+     * conclude the enchantment is broken.
+     *
+     * <p>⚠️ Counted on the CLIENT from what is worn, which is all the tooltip has. A player
+     * reading the tooltip of a piece in a chest sees the scramble until they have the set on —
+     * correct, since that is exactly when it starts working.
+     */
+    private static Component description(Enchantment ench, String translationKey) {
+        Component real = Component.translatable(translationKey + ".desc");
+        if (!isSetLocked(ench)) return real.copy().withStyle(DESC_STYLE);
+
+        return Component.empty()
+                .append(real.copy().withStyle(s -> s.withColor(SECRET_RED).withObfuscated(true)))
+                .append(Component.literal("  "))
+                .append(Component.translatable("baileys_enchantments.secret.needs_set")
+                        .withStyle(s -> s.withColor(SECRET_RED).withItalic(true)));
+    }
+
+    /** An armour Secret the viewer is not yet wearing a full set of. */
+    private static boolean isSetLocked(Enchantment ench) {
+        if (!Secrets.isSecret(ench)) return false;
+        if (ench.category != EnchantmentCategory.ARMOR) return false;
+
+        LocalPlayer player = Minecraft.getInstance().player;
+        if (player == null) return true;
+        for (EquipmentSlot slot : ARMOR_SLOTS) {
+            if (EnchantmentHelper.getItemEnchantmentLevel(ench, player.getItemBySlot(slot)) <= 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static final EquipmentSlot[] ARMOR_SLOTS = {
+            EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
 
     /**
      * A Secret's name on an item tooltip.

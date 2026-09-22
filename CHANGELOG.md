@@ -16,6 +16,57 @@ right-click ability, which were built after 1.1.0 was jarred.
 ⚠️ **Every number in this release is a first guess.** It was designed and built in one night on
 Bailey's authority and has not been played. Expect tuning.
 
+### ✨ Added — two new enchantments
+
+- **Shortbow** (Ultimate, from Flame). The bow fires the instant you click — no draw, no charge.
+  Every arrow leaves at full power and always crits. A short per-bow cooldown is the only limit.
+- **Immortal** (Secret, gambled from Aegis at 50%). An armour Secret, so it needs all four
+  pieces. It gives Aegis's protection **without Aegis's slowness**, and permanent immunity to
+  every debuff. Press the ward key (default **V**) to become completely untouchable for 30
+  seconds, at the cost of half your movement speed and half your damage. Two minute cooldown.
+
+### ⚖️ Changed — the deep ladder was upside down
+
+- **Sculkbane and Deepward now work everywhere**, with the Deep Dark bonus on top. They were
+  worthless outside one biome while replacing Sharpness and Protection entirely, which made
+  wearing them a downgrade. **Deepward IV at a full set gave 40% reduction where the Protection
+  VI it replaces gives 80%** — the deep ladder's armour was worse than the armour it replaced.
+  - Sculkbane: **+1 damage per level everywhere**, +6 per level in the Deep Dark (+35 at V).
+  - Shatter: **+4 damage everywhere** (Sharpness VII), +45 in the Deep Dark.
+  - Deepward: **20% per level at a full set everywhere** (80% at IV, matching Protection VI),
+    plus 10% per level in the Deep Dark, capped at 90%.
+- **Deepward now grants armour toughness**, +0.5 per level per piece — +8 for a full set at IV.
+- **A full corrupted set is now immune to the Warden's Sonic Boom**, rather than reducing it.
+
+### ⚖️ Changed — Secret odds
+
+- **Weapon Secrets now roll at 20%**, armour Secrets stay at 50%. An armour Secret has to be won
+  on all four pieces before it does anything, so a flat 50% made the weapon line roughly four
+  times cheaper for the same tier of power.
+
+### 🎨 Changed — tooltips
+
+- **Every enchantment in this mod now shows a description**, not only the Ultimates and Secrets.
+  Venom, Vein Miner, Swiftness and the rest had descriptions that were never displayed.
+- **All descriptions rewritten** with the actual numbers and the actual drawbacks.
+- **An armour Secret's description is scrambled until you wear the full set**, followed by
+  "Wear the full set to unlock". These enchantments do nothing at all with three pieces, and
+  the tooltip now says so instead of leaving you to assume it is broken.
+
+### ⚖️ Changed — Resonance
+
+- **A three second build-up before it fires.** The chunk it will catch is outlined in soul
+  particles for everyone to see, and **you are vulnerable for the whole build-up** — it can be
+  interrupted, and anyone inside the marked area can simply walk out. Once it lands you are
+  untouchable through the pull and the scatter, as before. The area is fixed when you start, so
+  walking to a chunk border mid-cast does not move it.
+
+### 🐛 Fixed
+
+- **Ability cooldowns applied to every item of that type.** Using Resonance greyed out every
+  netherite sword you owned, and two abilities on the same kind of item shared one timer.
+  Cooldowns are now stored on the individual item, and shown only on it.
+
 ### ✨ Added — the Smite line
 
 - **Umbra** (Ultimate, from Smite V). Smite VII damage against the undead. Any kill has a 20%

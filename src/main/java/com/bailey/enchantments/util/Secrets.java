@@ -63,6 +63,10 @@ public final class Secrets {
 
         // The Shadow Monarch. Umbra is gambled away for Requiem, which keeps Umbra's damage.
         add(ModEnchantments.UMBRA.get(), ModEnchantments.REQUIEM.get());
+
+        // Immortal, from Aegis — the second armour Secret, and Dissonance's rival for the one
+        // armour slot a player may hold. -> SecretLedger
+        add(ModEnchantments.AEGIS.get(), ModEnchantments.IMMORTAL.get());
     }
 
     private static void add(Enchantment ultimate, Enchantment secret) {

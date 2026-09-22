@@ -360,7 +360,7 @@ public class AncientAnvilScreen extends AbstractContainerScreen<AncientAnvilMenu
 
         drawSmall(guiGraphics, Component.translatable(
                         "container." + BaileysEnchantments.MODID + ".secret.odds",
-                        AncientAnvilMenu.getSecretChancePercent()),
+                        this.menu.getSecretChancePercent()),
                 SECRET_TEXT_X, SECRET_ODDS_Y);
         drawSmall(guiGraphics, Component.translatable(
                         "container." + BaileysEnchantments.MODID + ".secret.warning"),

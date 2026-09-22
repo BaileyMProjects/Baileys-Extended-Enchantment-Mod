@@ -161,6 +161,29 @@ public class ModEnchantments {
                 }
             });
 
+    /**
+     * <b>Shortbow</b> — fire the instant you click, with no draw. Bailey, 2026-09-22.
+     *
+     * <p>⚠️ Upgraded from <b>Flame</b>, which is the only bow enchantment left unclaimed: Power,
+     * Punch and Infinity already carry Obliterate, Tempest and Multishot. The same shortage that
+     * pushed Timber onto Efficiency. Flame I is its own ceiling, so the ritual asks for Flame I.
+     * Behaviour lives in {@code event/ShortbowAbility.java}.
+     */
+    public static final RegistryObject<Enchantment> SHORTBOW = ENCHANTMENTS.register("shortbow",
+            () -> new UltimateEnchantment(Enchantment.Rarity.VERY_RARE, EnchantmentCategory.BOW, EquipmentSlot.MAINHAND));
+
+    /**
+     * <b>Immortal</b> — Aegis's Secret, designed by Bailey 2026-09-22.
+     *
+     * <p>Like Dissonance it is a <b>full-set</b> enchantment: until all four pieces carry it, it
+     * does nothing and its tooltip stays scrambled. What it gives is permanent immunity to every
+     * debuff, Aegis's protection without Aegis's slowness, and an ability — untouchable for
+     * thirty seconds, at the price of being half as fast and hitting half as hard.
+     * Behaviour lives in {@code event/ImmortalAbility.java}.
+     */
+    public static final RegistryObject<Enchantment> IMMORTAL = ENCHANTMENTS.register("immortal",
+            () -> new SecretEnchantment(EnchantmentCategory.ARMOR, ARMOR_SLOTS));
+
     public static final RegistryObject<Enchantment> HOMING = ENCHANTMENTS.register("homing",
             () -> new SimpleModEnchantment(Enchantment.Rarity.RARE, EnchantmentCategory.BOW, 1, EquipmentSlot.MAINHAND));
 

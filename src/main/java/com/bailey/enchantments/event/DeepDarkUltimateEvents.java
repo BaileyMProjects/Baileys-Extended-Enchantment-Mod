@@ -41,9 +41,15 @@ public class DeepDarkUltimateEvents {
         if (attacker.level().isClientSide()) return;
 
         if (!Ultimates.hasUltimate(attacker.getMainHandItem(), ModEnchantments.SHATTER.get())) return;
-        if (!DeepDark.bonusApplies(attacker, event.getEntity())) return;
 
-        event.setAmount(event.getAmount() + DeepDarkBalance.SHATTER_DAMAGE_BONUS);
+        // ✅ A Sharpness VII baseline everywhere, reworked 2026-09-22 alongside Sculkbane. The
+        // deep ladder's Ultimate was zero outside its biome, which made winning it a downgrade
+        // from the Execute a player could have had instead.
+        float bonus = DeepDarkBalance.SHATTER_BASE_DAMAGE;
+        if (DeepDark.bonusApplies(attacker, event.getEntity())) {
+            bonus += DeepDarkBalance.SHATTER_DAMAGE_BONUS;
+        }
+        event.setAmount(event.getAmount() + bonus);
     }
 
     // -------------------------------------------------------------------------

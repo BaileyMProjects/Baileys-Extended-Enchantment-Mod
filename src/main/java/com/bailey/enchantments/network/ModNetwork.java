@@ -68,6 +68,12 @@ public final class ModNetwork {
                 ArmyRosterPayload::decode,
                 ArmyRosterPayload::handle);
 
+        CHANNEL.registerMessage(id++,
+                SecretAbilityPayload.class,
+                SecretAbilityPayload::encode,
+                SecretAbilityPayload::decode,
+                SecretAbilityPayload::handle);
+
         // The rite tells its one viewer when to start and how it went.
         AriseRitual.setCutsceneSender(new AriseRitual.CutsceneSender() {
             @Override

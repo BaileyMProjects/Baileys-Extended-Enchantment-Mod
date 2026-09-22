@@ -52,9 +52,14 @@ public class DeepDarkCombatEvents {
         int level = EnchantmentHelper.getItemEnchantmentLevel(
                 ModEnchantments.SCULKBANE.get(), attacker.getMainHandItem());
         if (level <= 0) return;
-        if (!DeepDark.bonusApplies(attacker, event.getEntity())) return;
 
-        event.setAmount(event.getAmount() + level * DeepDarkBalance.SCULKBANE_DAMAGE_PER_LEVEL);
+        // ✅ A baseline everywhere, so the sword is never dead weight. Reworked 2026-09-22 —
+        // see DeepDarkBalance.SCULKBANE_BASE_DAMAGE_PER_LEVEL for why the old zero was a trap.
+        float bonus = level * DeepDarkBalance.SCULKBANE_BASE_DAMAGE_PER_LEVEL;
+        if (DeepDark.bonusApplies(attacker, event.getEntity())) {
+            bonus += level * DeepDarkBalance.SCULKBANE_DAMAGE_PER_LEVEL;
+        }
+        event.setAmount(event.getAmount() + bonus);
     }
 
     // -------------------------------------------------------------------------
@@ -91,10 +96,18 @@ public class DeepDarkCombatEvents {
         if (source.is(DamageTypeTags.BYPASSES_ENCHANTMENTS)) return 0.0F;
         if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) return 0.0F;
 
-        // The OR rule, from the victim's point of view: in the Deep Dark, or hit by something
-        // from it. source.getEntity() rather than getDirectEntity() so a sonic boom is
-        // attributed to the Warden that fired it.
-        if (!DeepDark.bonusApplies(victim, source.getEntity())) return 0.0F;
+        // ✅ Immunity to the sonic boom, from the full set alone. Bailey, 2026-09-22. Returned
+        // as the clamp rather than 1.0 so the "nothing reaches total immunity" rule still holds
+        // for every other source — see DeepDarkBalance.SET_SONIC_BOOM_IMMUNE for the full note.
+        boolean sonic = source.is(DamageTypes.SONIC_BOOM);
+        if (sonic && DeepDarkBalance.SET_SONIC_BOOM_IMMUNE && DeepDark.hasFullCorruptedSet(victim)) {
+            return 1.0F;
+        }
+
+        // ⚠️ The DEEP DARK check moved below the baseline. Deepward now mitigates everywhere —
+        // it supersedes Protection, so anything less made wearing it a downgrade. Only the
+        // bonus terms are gated on the deep.
+        boolean deep = DeepDark.bonusApplies(victim, source.getEntity());
 
         float reduction = 0.0F;
 
@@ -108,17 +121,18 @@ public class DeepDarkCombatEvents {
                     ModEnchantments.DEEPWARD.get(), victim.getItemBySlot(slot));
         }
         if (levels > 0) {
-            reduction += DeepDarkBalance.DEEPWARD_REDUCTION_PER_LEVEL * levels / ARMOR_SLOTS.length;
+            // The baseline, everywhere: IV at a full set = 80%, matching boosted Protection VI.
+            reduction += DeepDarkBalance.DEEPWARD_BASE_REDUCTION_PER_LEVEL * levels / ARMOR_SLOTS.length;
+            // And the deep bonus on top, which the clamp then holds at 90%.
+            if (deep) {
+                reduction += DeepDarkBalance.DEEPWARD_REDUCTION_PER_LEVEL * levels / ARMOR_SLOTS.length;
+            }
         }
 
-        if (DeepDark.hasFullCorruptedSet(victim)) {
-            // The set's sonic-boom bonus REPLACES its generic deep dark reduction rather than
-            // stacking on top of it — one bonus per hit. Both agreed targets land exactly on
-            // that reading (sonic boom 10 → 2, melee 30 → ~5 through netherite-grade armor);
-            // stacking them would overshoot into the clamp and make the clamp the real number.
-            reduction += source.is(DamageTypes.SONIC_BOOM)
-                    ? DeepDarkBalance.SET_SONIC_BOOM_REDUCTION
-                    : DeepDarkBalance.SET_DEEP_DARK_DAMAGE_REDUCTION;
+        if (deep && DeepDark.hasFullCorruptedSet(victim)) {
+            // ⚠️ The sonic-boom branch is gone: the set is now immune to it outright and
+            // returned early above. What is left is the generic deep dark reduction.
+            reduction += DeepDarkBalance.SET_DEEP_DARK_DAMAGE_REDUCTION;
         }
 
         // ⚠️ "Very easy, not immune" was an explicit call. Nothing here may reach 1.0.

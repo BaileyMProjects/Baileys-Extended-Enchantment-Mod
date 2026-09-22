@@ -147,6 +147,9 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
     // cannot tell those apart will read the rule as a bug.
     private final DataSlot secretBlockedBy = DataSlot.standalone();
 
+    /** The odds of the gamble currently set up, as a percentage. See getSecretChancePercent. */
+    private final DataSlot secretChancePercent = DataSlot.standalone();
+
     private final DataSlot disenchantClue = DataSlot.standalone();
     private final DataSlot disenchantClueLevel = DataSlot.standalone();
 
@@ -251,6 +254,9 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
 
         this.secretBlockedBy.set(-1);
         this.addDataSlot(this.secretBlockedBy);
+
+        this.secretChancePercent.set(0);
+        this.addDataSlot(this.secretChancePercent);
     }
 
     // Structure power at this anvil. 0 on the client, where access is NULL — every
@@ -294,8 +300,16 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
 
     // The odds, for the screen to show. Surfaced as a percent so the warning text and the
     // actual roll can never disagree: both read DeepDarkBalance.
-    public static int getSecretChancePercent() {
-        return Math.round(DeepDarkBalance.SECRET_SUCCESS_CHANCE * 100.0F);
+    /**
+     * The odds shown on the Secret tab, as a percentage.
+     *
+     * <p>⚠️ No longer a constant: weapon Secrets roll at 20% and armour Secrets at 50%, so the
+     * number depends on what is in the slot. A DataSlot because the SCREEN needs it and the
+     * client menu has no access to the balance decision the server made.
+     */
+    public int getSecretChancePercent() {
+        int v = this.secretChancePercent.get();
+        return v > 0 ? v : Math.round(DeepDarkBalance.SECRET_SUCCESS_CHANCE * 100.0F);
     }
     public int getUpgradeCount() { return this.upgradeCount.get(); }
     public int getSelectedUpgrade() { return this.selectedUpgrade.get(); }
@@ -521,6 +535,7 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
             // what the whole tab is built from, so dropping it here removes the result, the
             // cost and the take in one go rather than refusing at the last step.
             if (secret) {
+                this.secretChancePercent.set(Math.round(DeepDarkBalance.secretChance(target) * 100.0F));
                 Enchantment blocker = this.blockingSecret(target);
                 if (blocker != null) {
                     this.secretBlockedBy.set(BuiltInRegistries.ENCHANTMENT.getId(blocker));
@@ -592,7 +607,7 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
         Enchantment secretEnchant = Secrets.getSecretForUltimate(chosen);
         if (secretEnchant == null) return null;
 
-        if (player.getRandom().nextFloat() >= DeepDarkBalance.SECRET_SUCCESS_CHANCE) return null;
+        if (player.getRandom().nextFloat() >= DeepDarkBalance.secretChance(secretEnchant)) return null;
         return secretEnchant;
     }
 

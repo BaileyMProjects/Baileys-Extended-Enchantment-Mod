@@ -933,9 +933,17 @@ public class ModUltimateEvents {
     public static void onLivingHurtAegis(LivingHurtEvent event) {
         LivingEntity victim = event.getEntity();
         if (victim.level().isClientSide()) return;
+        // ⚠️ IMMORTAL COUNTS HERE, AND NOT IN THE SLOWNESS BLOCK. That asymmetry is the whole
+        // enchantment. Bailey, 2026-09-22: Immortal gives "the removal of all speed debuffs from
+        // the ultimate with the same protection benefit". A Secret replaces the Ultimate on its
+        // item, so an Immortal piece carries no Aegis and would otherwise protect for nothing.
         int aegisCount = 0;
         for (EquipmentSlot slot : ARMOR_SLOTS) {
-            if (Ultimates.hasUltimate(victim.getItemBySlot(slot), ModEnchantments.AEGIS.get())) aegisCount++;
+            ItemStack piece = victim.getItemBySlot(slot);
+            if (Ultimates.hasUltimate(piece, ModEnchantments.AEGIS.get())
+                    || Ultimates.hasUltimate(piece, ModEnchantments.IMMORTAL.get())) {
+                aegisCount++;
+            }
         }
         if (aegisCount > 0) {
             event.setAmount(event.getAmount() * (1.0f - aegisCount * 0.225f));
