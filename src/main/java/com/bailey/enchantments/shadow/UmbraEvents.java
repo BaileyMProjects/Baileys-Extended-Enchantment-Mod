@@ -41,7 +41,7 @@ public final class UmbraEvents {
         if (!hasUmbraPerk(killer.getMainHandItem())) return;
 
         if (ShadowData.isShadow(victim)) return;                 // a shadow leaves no shadow
-        if (!(victim instanceof Mob)) return;                     // players: Phase 6
+        if (!(victim instanceof Mob) && !(victim instanceof ServerPlayer)) return;
         if (!ShadowClassifier.isRaisable(victim)) return;
         if (ShadowEvents.temporaryCount(killer.getUUID()) >= ShadowBalance.UMBRA_MAX_CLONES) return;
         if (level.random.nextFloat() >= ShadowBalance.UMBRA_CLONE_CHANCE) return;

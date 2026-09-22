@@ -2,6 +2,7 @@ package com.bailey.enchantments.entity;
 
 import com.bailey.enchantments.BaileysEnchantments;
 import com.bailey.enchantments.shadow.ShadowRemnant;
+import com.bailey.enchantments.shadow.ShadowPlayer;
 
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -26,4 +27,12 @@ public class ModEntities {
                             .updateInterval(20)
                             .fireImmune()
                             .build("shadow_remnant"));
+
+    /** The body a raised player wears. See {@link ShadowPlayer}. */
+    public static final RegistryObject<EntityType<ShadowPlayer>> SHADOW_PLAYER =
+            ENTITY_TYPES.register("shadow_player", () ->
+                    EntityType.Builder.of(ShadowPlayer::new, MobCategory.MISC)
+                            .sized(0.6F, 1.8F)
+                            .clientTrackingRange(10)
+                            .build("shadow_player"));
 }

@@ -9,6 +9,7 @@ import com.bailey.enchantments.BaileysEnchantments;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
@@ -52,6 +53,7 @@ public final class ShadowSpawner {
 
     /** A storable description of this creature: its type id plus everything durable about it. */
     public static CompoundTag snapshot(LivingEntity entity) {
+        if (entity instanceof ServerPlayer player) return ShadowPlayer.snapshotOf(player);
         CompoundTag tag = new CompoundTag();
         entity.saveWithoutId(tag);
         for (String key : STRIP) tag.remove(key);

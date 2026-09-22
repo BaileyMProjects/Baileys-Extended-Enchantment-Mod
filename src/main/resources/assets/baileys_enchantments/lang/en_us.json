@@ -115,6 +115,7 @@
   "enchantment.baileys_enchantments.requiem.desc": "Smite VII, and Arise. Sneak-click a fallen foe's remnant to bind its shadow; right-click to deploy your army, sneak-click the air to recall it.",
 
   "entity.baileys_enchantments.shadow_remnant": "Shadow Remnant",
+  "entity.baileys_enchantments.shadow_player": "Shadow",
   "baileys_enchantments.requiem.remnant": "A shadow lingers: %s — %s slots, %s.",
   "baileys_enchantments.requiem.arise": "ARISE. %s joins your shadows. (%s/%s)",
   "baileys_enchantments.requiem.resist": "The shadow resists. %s attempts remain.",

@@ -8,7 +8,7 @@ final class ShadowSupport {
     private ShadowSupport() {}
 
     /** Phase 6: {@code ShadowPlayer}. */
-    static final boolean PLAYERS = false;
+    static final boolean PLAYERS = true;
 
     /** Phase 7: {@code ShadowDragon}. */
     static final boolean DRAGON = false;

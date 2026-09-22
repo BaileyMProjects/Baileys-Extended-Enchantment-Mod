@@ -60,17 +60,16 @@ public final class RequiemEvents {
             return;
         }
 
-        // The owner fell: everything comes home.
+        // The owner fell: everything comes home. (And they may leave a remnant of their own.)
         if (victim instanceof ServerPlayer player) {
             ShadowArmyManager.recallAll(player.server, player.getUUID());
-            return;
         }
 
         // A kill worth remembering.
         if (!(event.getSource().getEntity() instanceof ServerPlayer killer)) return;
         if (!hasRequiem(killer.getMainHandItem())) return;
         if (ShadowData.isShadow(victim)) return;
-        if (!(victim instanceof Mob)) return;                    // players: Phase 6
+        if (!(victim instanceof Mob) && !(victim instanceof ServerPlayer)) return;
         if (!ShadowClassifier.isRaisable(victim)) return;
 
         ShadowRemnant remnant = ModEntities.SHADOW_REMNANT.get().create(level);

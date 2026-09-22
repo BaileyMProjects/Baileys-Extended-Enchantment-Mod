@@ -45,7 +45,8 @@ public final class ShadowArmyManager {
         ShadowArmy army = armies.armyOf(owner.getUUID());
 
         String typeId = snapshot.getString("id");
-        String name = EntityType.by(snapshot).map(t -> t.getDescription().getString()).orElse(typeId);
+        String name = snapshot.contains("ProfileName") ? snapshot.getString("ProfileName")
+                : EntityType.by(snapshot).map(t -> t.getDescription().getString()).orElse(typeId);
         ShadowArmy.Soldier soldier = new ShadowArmy.Soldier(UUID.randomUUID(), typeId, name, slots, snapshot);
         army.add(soldier);
         armies.markDirty();
