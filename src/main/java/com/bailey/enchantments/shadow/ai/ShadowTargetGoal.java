@@ -4,6 +4,7 @@ import java.util.EnumSet;
 
 import com.bailey.enchantments.shadow.ShadowAi;
 import com.bailey.enchantments.shadow.ShadowData;
+import com.bailey.enchantments.shadow.SoldierLevels;
 
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -15,7 +16,13 @@ import net.minecraft.world.entity.player.Player;
  * never tick can share them; this is only the goal-selector wrapper.
  */
 public class ShadowTargetGoal extends Goal {
-    private static final int INTERVAL = 10;
+    /**
+     * ⚠️ Reaction time IS intelligence, rung 1. A dull shadow looks at the battlefield every ten
+     * ticks and is half a second behind everything; a clever one is nearly instant.
+     */
+    private static int intervalFor(int intelligence) {
+        return Math.max(2, 10 - intelligence * 2);
+    }
 
     private final Mob mob;
     private int timer;
@@ -42,14 +49,15 @@ public class ShadowTargetGoal extends Goal {
 
     @Override
     public void tick() {
-        if (++timer < INTERVAL) return;
+        int intelligence = SoldierLevels.intelligenceOf(mob);
+        if (++timer < intervalFor(intelligence)) return;
         timer = 0;
 
         Player owner = ShadowData.owner(mob);
         if (owner == null) return;
 
         LivingEntity current = mob.getTarget();
-        LivingEntity next = ShadowTargeting.choose(mob, owner, current);
+        LivingEntity next = ShadowTargeting.choose(mob, owner, current, intelligence);
         if (next != current) ShadowAi.setTarget(mob, next);
     }
 }

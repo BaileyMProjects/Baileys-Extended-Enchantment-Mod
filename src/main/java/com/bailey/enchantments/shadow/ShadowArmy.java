@@ -31,6 +31,31 @@ public final class ShadowArmy {
         public boolean deployed;
         @Nullable public UUID entityId;
 
+        /** The soldier's own ladder. It keeps this through death — ✅ Bailey, asked directly. */
+        public int level = 1;
+        public int xp;
+
+        /**
+         * Health carried between deployments, and while downed.
+         *
+         * <p>⚠️ A killed shadow is <b>downed, not destroyed</b> — Bailey, 2026-09-22: <i>"when
+         * your soldier dies it just goes back into your army and doesnt dissapear but they just
+         * sit at 0 health and slowly regenerate... kind of like a pokemon."</i> −1 means "full",
+         * so a soldier that has never fought does not need a max-health lookup to store one.
+         */
+        public float storedHealth = -1.0F;
+
+        /**
+         * The body's max health when it was last seen, so the roster can judge "how hurt is it"
+         * without spawning one. 0 until the soldier has been deployed once.
+         */
+        public float maxHealth;
+
+        /** Max health as best the roster knows it. Never zero, so a fraction is always safe. */
+        public float maxHealthEstimate() { return maxHealth > 0 ? maxHealth : 20.0F; }
+
+        public boolean downed() { return storedHealth == 0.0F; }
+
         public Soldier(UUID id, String typeId, String name, int slots, CompoundTag snapshot) {
             this.id = id;
             this.typeId = typeId;
@@ -52,6 +77,10 @@ public final class ShadowArmy {
             tag.put("Snapshot", snapshot);
             tag.putBoolean("Deployed", deployed);
             if (entityId != null) tag.putUUID("Entity", entityId);
+            tag.putInt("Level", level);
+            tag.putInt("Xp", xp);
+            tag.putFloat("StoredHealth", storedHealth);
+            tag.putFloat("MaxHealth", maxHealth);
             return tag;
         }
 
@@ -60,6 +89,10 @@ public final class ShadowArmy {
                     tag.getInt("Slots"), tag.getCompound("Snapshot"));
             s.deployed = tag.getBoolean("Deployed");
             s.entityId = tag.hasUUID("Entity") ? tag.getUUID("Entity") : null;
+            s.level = Math.max(1, tag.getInt("Level"));
+            s.xp = tag.getInt("Xp");
+            s.storedHealth = tag.contains("StoredHealth") ? tag.getFloat("StoredHealth") : -1.0F;
+            s.maxHealth = tag.getFloat("MaxHealth");
             return s;
         }
     }
@@ -99,8 +132,13 @@ public final class ShadowArmy {
         return n;
     }
 
-    public int freeSlots() {
-        return Math.max(0, ShadowBalance.ARMY_CAP - usedSlots());
+    /**
+     * ⚠️ Free slots depend on WHO IS ASKING. The army lives in the blade, the cap lives with the
+     * necromancer, so a roster can exceed its current holder's cap — pick up a veteran's sword
+     * as a novice and you simply cannot field all of it.
+     */
+    public int freeSlots(int cap) {
+        return Math.max(0, cap - usedSlots());
     }
 
     public boolean anyDeployed() {

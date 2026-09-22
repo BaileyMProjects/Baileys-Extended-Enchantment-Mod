@@ -91,16 +91,33 @@ public final class ShadowArmyMenuServer {
         ShadowArmy army = ShadowArmies.get(player.server).armyOf(armyId);
         List<ArmyRosterPayload.Row> rows = new ArrayList<>();
         for (ShadowArmy.Soldier s : army.soldiers()) {
-            float health = 0, max = 0;
+            float health, max;
+            int intelligence = 0;
             if (s.deployed) {
                 Entity body = ShadowArmyManager.findEntity(player.server, s.entityId);
                 if (body instanceof LivingEntity living) {
                     health = living.getHealth();
                     max = living.getMaxHealth();
+                    intelligence = SoldierLevels.intelligenceOf(body, s.level);
+                } else {
+                    health = 0;
+                    max = s.maxHealthEstimate();
                 }
+            } else {
+                // Stored: show what it will come back with. -1 means it has never been hurt.
+                max = s.maxHealthEstimate();
+                health = s.storedHealth < 0 ? max : s.storedHealth;
+                intelligence = s.level * ShadowBalance.MAX_INTELLIGENCE / ShadowBalance.MAX_NECROMANCER_LEVEL;
             }
-            rows.add(new ArmyRosterPayload.Row(s.id, s.typeId, s.name, s.slots, s.tier().ordinal(), s.deployed, health, max));
+            rows.add(new ArmyRosterPayload.Row(s.id, s.typeId, s.name, s.slots, s.tier().ordinal(),
+                    s.deployed, health, max, s.level, s.xp, Necromancer.xpToNext(s.level),
+                    intelligence, ShadowArmyManager.readyToDeploy(s)));
         }
-        ModNetwork.sendToPlayer(new ArmyRosterPayload(open, army.usedSlots(), ShadowBalance.ARMY_CAP, army.stance(), rows), player);
+        Necromancer necro = Necromancer.get(player.server);
+        Necromancer.Record rec = necro.of(player.getUUID());
+        ModNetwork.sendToPlayer(new ArmyRosterPayload(open, army.usedSlots(),
+                Necromancer.slotsForLevel(rec.level), army.stance(), rows,
+                rec.level, rec.xp, Necromancer.xpToNext(rec.level), rec.killsSinceOwn,
+                ShadowBalance.SHADOW_KILLS_PER_OWN_KILL), player);
     }
 }

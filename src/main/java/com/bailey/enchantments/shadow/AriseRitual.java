@@ -94,10 +94,11 @@ public final class AriseRitual {
         }
 
         ShadowArmy army = ShadowArmies.get(player.server).armyOf(armyId);
+        int cap = Necromancer.get(player.server).slotsOf(player.getUUID());
         int slots = remnant.slots();
-        if (army.freeSlots() < slots) {
+        if (army.freeSlots(cap) < slots) {
             player.displayClientMessage(Component.translatable("baileys_enchantments.requiem.no_room",
-                    nameOf(remnant), slots, army.freeSlots()).withStyle(ChatFormatting.RED), true);
+                    nameOf(remnant), slots, army.freeSlots(cap)).withStyle(ChatFormatting.RED), true);
             return;
         }
 
@@ -170,7 +171,7 @@ public final class AriseRitual {
 
         ShadowArmy army = ShadowArmies.get(player.server).armyOf(armyId);
         player.displayClientMessage(Component.translatable("baileys_enchantments.requiem.arise",
-                soldier.name, army.usedSlots(), ShadowBalance.ARMY_CAP).withStyle(ChatFormatting.DARK_AQUA), true);
+                soldier.name, army.usedSlots(), Necromancer.get(player.server).slotsOf(player.getUUID())).withStyle(ChatFormatting.DARK_AQUA), true);
     }
 
     private static void fail(ServerPlayer player, ShadowRemnant remnant) {

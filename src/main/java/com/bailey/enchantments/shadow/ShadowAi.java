@@ -2,6 +2,7 @@ package com.bailey.enchantments.shadow;
 
 import com.bailey.enchantments.shadow.ai.ShadowAttackGoal;
 import com.bailey.enchantments.shadow.ai.ShadowFollowGoal;
+import com.bailey.enchantments.shadow.ai.ShadowRetreatGoal;
 import com.bailey.enchantments.shadow.ai.ShadowTargetGoal;
 import com.bailey.enchantments.shadow.ai.ShadowWanderGoal;
 
@@ -49,6 +50,9 @@ public final class ShadowAi {
         setTarget(mob, null);
 
         int p = 0;
+        // ⚠️ Above the attack goal: a shadow clever enough to run must not be dragged back into
+        // the fight by a goal that outranks it.
+        mob.goalSelector.addGoal(p++, new ShadowRetreatGoal(mob));
         if (mob instanceof RangedAttackMob) {
             mob.goalSelector.addGoal(p++, rangedGoal(mob));
         }

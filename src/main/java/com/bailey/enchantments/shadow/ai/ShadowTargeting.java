@@ -43,7 +43,7 @@ public final class ShadowTargeting {
      * when it is still valid and nothing outranks it, so the army does not flicker.
      */
     @Nullable
-    public static LivingEntity choose(Mob mob, Player owner, @Nullable LivingEntity current) {
+    public static LivingEntity choose(Mob mob, Player owner, @Nullable LivingEntity current, int intelligence) {
         ShadowStance stance = ShadowStances.get(owner.getUUID());
         if (stance == ShadowStance.PASSIVE) return null;
 
@@ -55,9 +55,27 @@ public final class ShadowTargeting {
         if (current != null) return current;
 
         LivingEntity next = ownerVictim(mob, owner);
-        if (next == null) next = worstThreat(mob, owner);
+        // ⚠️ Rung 2: a dull shadow charges whatever is nearest; a clever one weighs the threat.
+        // This is the difference between an army that swarms the zombie beside the Warden and
+        // one that goes for the Warden.
+        if (next == null) next = intelligence >= 2 ? worstThreat(mob, owner) : nearestThreat(mob, owner);
         if (next == null && stance == ShadowStance.AGGRESSIVE) next = nearestHostile(mob, owner);
         return next;
+    }
+
+    /** The closest thing menacing the owner, threat ignored. What a dull shadow sees. */
+    @Nullable
+    private static LivingEntity nearestThreat(Mob mob, Player owner) {
+        AABB area = owner.getBoundingBox().inflate(SCAN_RADIUS);
+        LivingEntity best = null;
+        double bestDist = Double.MAX_VALUE;
+        for (LivingEntity e : owner.level().getEntitiesOfClass(LivingEntity.class, area,
+                x -> x != owner && x != mob && valid(mob, x, owner))) {
+            if (!threatens(e, owner)) continue;
+            double d = e.distanceToSqr(mob);
+            if (d < bestDist) { best = e; bestDist = d; }
+        }
+        return best;
     }
 
     // ---- the rules -------------------------------------------------------------------------

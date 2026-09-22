@@ -117,7 +117,8 @@ public final class ShadowReport {
         root.addProperty("_formula", "threat = health / (1 - 0.04 * min(armor, 20)) * (1 + damage / "
                 + (int) ShadowBalance.DAMAGE_WEIGHT + "); slots = max(1, round(log2(threat / "
                 + (int) ShadowBalance.ONE_SLOT_THREAT + ")) + 1)");
-        root.addProperty("_army_cap", ShadowBalance.ARMY_CAP);
+        root.addProperty("_army_slots_at_level_1", ShadowBalance.BASE_ARMY_SLOTS);
+        root.addProperty("_army_slots_at_max_level", ShadowBalance.MAX_ARMY_SLOTS);
         root.addProperty("_living_types", rows.size());
 
         JsonObject entries = new JsonObject();

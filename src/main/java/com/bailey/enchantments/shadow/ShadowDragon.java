@@ -107,7 +107,8 @@ public class ShadowDragon extends EnderDragon {
 
             if (--retargetIn <= 0) {
                 retargetIn = 10;
-                LivingEntity next = ShadowTargeting.choose(ShadowDragon.this, owner, getTarget());
+                LivingEntity next = ShadowTargeting.choose(ShadowDragon.this, owner, getTarget(),
+                        com.bailey.enchantments.shadow.SoldierLevels.intelligenceOf(ShadowDragon.this));
                 if (next != getTarget()) setTarget(next);
             }
 

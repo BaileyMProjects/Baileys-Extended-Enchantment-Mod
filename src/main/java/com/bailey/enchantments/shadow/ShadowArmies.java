@@ -37,6 +37,11 @@ public final class ShadowArmies extends SavedData {
         return armies.containsKey(armyId);
     }
 
+    /** Every roster in the world, for the mending tick. */
+    public java.util.Collection<ShadowArmy> all() {
+        return armies.values();
+    }
+
     /** Every army this player currently has out in the world, by id. */
     public List<UUID> deployedBy(UUID player) {
         List<UUID> out = new ArrayList<>();

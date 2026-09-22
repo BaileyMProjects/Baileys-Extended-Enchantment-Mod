@@ -38,8 +38,39 @@ public final class ShadowBalance {
 
     // ---- Requiem, the army ----------------------------------------------------------------
 
-    /** Total slots a Requiem army may hold. A Warden is 8 of these. */
-    public static final int ARMY_CAP = 12;
+    // ---- the necromancer ladder -----------------------------------------------------------
+
+    /**
+     * Slots at necromancer level 1, and at max. Bailey, 2026-09-22: <i>"you start with 3 slots
+     * and you level up just like the anime... have a way higher cap then 12 once you hit max
+     * level so max level army users are way more broken but it takes a lot of time to reach."</i>
+     */
+    public static final int BASE_ARMY_SLOTS = 3;
+    public static final int MAX_ARMY_SLOTS = 40;
+
+    /** ✅ Bailey's pick. Level 100 would have been ~15,000 zombie kills. */
+    public static final int MAX_NECROMANCER_LEVEL = 50;
+
+    /**
+     * A victim's slot cost is multiplied by this, then divided by {@link #XP_DIVISOR}, to give
+     * the XP its death feeds. Zombie 2, enderman 6, Warden 16.
+     */
+    public static final int XP_PER_SLOT = 8;
+
+    /** ✅ Bailey: <i>"all xp taken in by the shadow army is divided by 4."</i> */
+    public static final int XP_DIVISOR = 4;
+
+    /**
+     * 🔴 THE ANTI-AFK GATE. Bailey: <i>"after lets say 10 kills with your army you no longer gain
+     * army xp until you kill a mob. Removes afk mob farming to max level overnight."</i>
+     */
+    public static final int SHADOW_KILLS_PER_OWN_KILL = 10;
+
+    /**
+     * ⚠️ Deployed bodies, whatever the slots allow. 40 slots of runts would be 40 mobs with AI
+     * and auras per player; this keeps a big army meaning big soldiers rather than a swarm.
+     */
+    public static final int MAX_DEPLOYED_BODIES = 20;
 
     /** How long a shadow remnant lingers after a kill before it fades, in ticks. */
     public static final int REMNANT_TICKS = 200;
@@ -70,6 +101,26 @@ public final class ShadowBalance {
 
     /** Umbra clones alive at once, per owner. A count, not slots — Umbra has no army. */
     public static final int UMBRA_MAX_CLONES = 2;
+
+    // ---- soldier levels and intelligence -----------------------------------------------------
+
+    /** Extra max health per level above 1, as a fraction of base. Level 50 = +98%. */
+    public static final double SOLDIER_HEALTH_PER_LEVEL = 0.02;
+
+    /** Extra attack damage per level above 1, as a fraction of base. Level 50 = +147%. */
+    public static final double SOLDIER_DAMAGE_PER_LEVEL = 0.03;
+
+    /** The intelligence ceiling. Each rung is a thing the AI learns to do. */
+    public static final int MAX_INTELLIGENCE = 5;
+
+    /**
+     * A downed shadow mends this fraction of its max health per second in storage. 0.5% ≈ three
+     * and a half minutes from nothing to full — a cooldown, not a punishment.
+     */
+    public static final float DOWNED_REGEN_PER_SECOND = 0.005F;
+
+    /** A downed shadow cannot be deployed until it has mended this much of its health. */
+    public static final float DEPLOYABLE_AT = 0.35F;
 
     // ---- the AI ----------------------------------------------------------------------------
 

@@ -61,7 +61,7 @@ public class ShadowArmyScreen extends Screen {
     // ---- geometry --------------------------------------------------------------------------
     private static final int W = 276;
     private static final int H = 214;
-    private static final int HEADER_H = 34;
+    private static final int HEADER_H = 46;
     private static final int FOOTER_H = 30;
     private static final int ROW_H = 44;
     private static final int PREVIEW = 36;
@@ -75,6 +75,7 @@ public class ShadowArmyScreen extends Screen {
     private int scroll;
     private final List<ArmyRosterPayload.Row> rows = new ArrayList<>();
     private int used, cap;
+    private int level = 1, xp, xpToNext, killsSinceOwn, killGate = 10;
     private ShadowStance stance = ShadowStance.GUARD;
 
     @Nullable private UUID confirmRelease;
@@ -106,6 +107,11 @@ public class ShadowArmyScreen extends Screen {
         used = payload.used;
         cap = payload.cap;
         stance = payload.stance;
+        level = payload.level;
+        xp = payload.xp;
+        xpToNext = payload.xpToNext;
+        killsSinceOwn = payload.killsSinceOwn;
+        killGate = payload.killGate;
         scroll = Mth.clamp(scroll, 0, maxScroll());
         if (renaming != null && rows.stream().noneMatch(r -> r.id().equals(renaming))) stopRename(false);
     }
@@ -185,12 +191,39 @@ public class ShadowArmyScreen extends Screen {
         g.drawString(font, slots, left + W - 8 - font.width(slots), y, used >= cap ? DANGER : TEXT, true);
 
         // The slot bar: one segment per slot, lit for what is used.
+        // ⚠️ Segments get thin past ~30 slots, so below a minimum width it draws as one solid
+        // bar instead. A 40-slot army would otherwise be a row of single-pixel slivers.
         int barX = x, barY = y + 13, barW = W - 16, segGap = 2;
         int segW = (barW - segGap * (cap - 1)) / Math.max(1, cap);
-        for (int i = 0; i < cap; i++) {
-            int sx = barX + i * (segW + segGap);
-            g.fill(sx, barY, sx + segW, barY + 5, i < used ? ACCENT : ACCENT_DIM);
+        if (segW >= 3) {
+            for (int i = 0; i < cap; i++) {
+                int sx = barX + i * (segW + segGap);
+                g.fill(sx, barY, sx + segW, barY + 5, i < used ? ACCENT : ACCENT_DIM);
+            }
+        } else {
+            g.fill(barX, barY, barX + barW, barY + 5, ACCENT_DIM);
+            g.fill(barX, barY, barX + barW * Math.min(used, cap) / Math.max(1, cap), barY + 5, ACCENT);
         }
+
+        // The necromancer's own ladder, which belongs to the player rather than the blade.
+        int ly = y + 21;
+        String lvl = "Lv " + level + (level >= 50 ? " MAX" : "");
+        g.drawString(font, lvl, x, ly, level >= 50 ? OK : ACCENT, false);
+
+        if (level < 50 && xpToNext > 0) {
+            int xbX = x + font.width(lvl) + 6;
+            int xbW = 96;
+            g.fill(xbX, ly + 2, xbX + xbW, ly + 5, ACCENT_DIM);
+            g.fill(xbX, ly + 2, xbX + xbW * Math.min(xp, xpToNext) / xpToNext, ly + 5, ACCENT);
+        }
+
+        // ⚠️ The AFK gate has to be visible, or an army that has quietly stopped earning looks
+        // like a bug rather than a rule.
+        String gate = killsSinceOwn >= killGate
+                ? Component.translatable("baileys_enchantments.army.gate_shut").getString()
+                : (killGate - killsSinceOwn) + Component.translatable("baileys_enchantments.army.gate_left").getString();
+        g.drawString(font, gate, left + W - 8 - font.width(gate), ly, killsSinceOwn >= killGate ? DANGER : TEXT_DIM, false);
+
         g.fill(left, top + HEADER_H - 1, left + W, top + HEADER_H, PANEL_EDGE);
     }
 
@@ -244,8 +277,15 @@ public class ShadowArmyScreen extends Screen {
         if (renaming == null || !renaming.equals(row.id())) {
             g.drawString(font, row.name(), tx, y + 6, TEXT, true);
         }
-        String tier = tierName(row.tier()) + " · " + row.slots() + (row.slots() == 1 ? " slot" : " slots");
+        String tier = "Lv " + row.level() + "  " + tierName(row.tier()) + " 00b7 " + row.slots()
+                + (row.slots() == 1 ? " slot" : " slots");
         g.drawString(font, tier, tx, y + 17, TEXT_DIM, false);
+
+        // Intelligence as pips, so "this one has learned things" reads without a number.
+        int pipX = left + W - 8 - BTN_W - 6 - 5 * 5;
+        for (int i = 0; i < 5; i++) {
+            g.fill(pipX + i * 5, y + 18, pipX + i * 5 + 3, y + 21, i < row.intelligence() ? ACCENT : ACCENT_DIM);
+        }
 
         if (row.deployed()) {
             g.drawString(font, "●", tx, y + 28, OK, false);
@@ -255,8 +295,20 @@ public class ShadowArmyScreen extends Screen {
             float f = row.maxHealth() > 0 ? Mth.clamp(row.health() / row.maxHealth(), 0, 1) : 0;
             g.fill(barX, y + 37, barX + barW, y + 39, ACCENT_DIM);
             g.fill(barX, y + 37, barX + (int) (barW * f), y + 39, f > 0.3F ? ACCENT : DANGER);
+        } else if (row.maxHealth() > 0 && row.health() < row.maxHealth()) {
+            // Mending in the blade. Bailey wanted a Pokemon-style cooldown rather than a loss.
+            boolean down = row.health() <= 0.01F;
+            g.drawString(font, down ? "2716" : "25d1", tx, y + 28, down ? DANGER : TEXT_DIM, false);
+            String label = Component.translatable(down ? "baileys_enchantments.army.downed"
+                    : "baileys_enchantments.army.mending").getString();
+            g.drawString(font, label + "  " + (int) (100 * row.health() / row.maxHealth()) + "%",
+                    tx + 8, y + 28, row.ready() ? TEXT_DIM : DANGER, false);
+            int barW = 70, barX = tx;
+            float f = Mth.clamp(row.health() / row.maxHealth(), 0, 1);
+            g.fill(barX, y + 37, barX + barW, y + 39, ACCENT_DIM);
+            g.fill(barX, y + 37, barX + (int) (barW * f), y + 39, row.ready() ? ACCENT : DANGER);
         } else {
-            g.drawString(font, "○", tx, y + 28, TEXT_DIM, false);
+            g.drawString(font, "25cb", tx, y + 28, TEXT_DIM, false);
             g.drawString(font, Component.translatable("baileys_enchantments.army.stored").getString(), tx + 8, y + 28, TEXT_DIM, false);
         }
 

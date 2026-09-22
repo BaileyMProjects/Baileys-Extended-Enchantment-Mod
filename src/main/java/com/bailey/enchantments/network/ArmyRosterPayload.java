@@ -19,20 +19,33 @@ import net.minecraftforge.network.NetworkEvent;
  */
 public class ArmyRosterPayload {
     public record Row(UUID id, String typeId, String name, int slots, int tier,
-                      boolean deployed, float health, float maxHealth) {}
+                      boolean deployed, float health, float maxHealth,
+                      int level, int xp, int xpToNext, int intelligence, boolean ready) {}
 
     public final boolean open;
     public final int used;
     public final int cap;
     public final ShadowStance stance;
     public final List<Row> rows;
+    /** The holder's own ladder, which is separate from the blade's roster. */
+    public final int level;
+    public final int xp;
+    public final int xpToNext;
+    public final int killsSinceOwn;
+    public final int killGate;
 
-    public ArmyRosterPayload(boolean open, int used, int cap, ShadowStance stance, List<Row> rows) {
+    public ArmyRosterPayload(boolean open, int used, int cap, ShadowStance stance, List<Row> rows,
+                             int level, int xp, int xpToNext, int killsSinceOwn, int killGate) {
         this.open = open;
         this.used = used;
         this.cap = cap;
         this.stance = stance;
         this.rows = rows;
+        this.level = level;
+        this.xp = xp;
+        this.xpToNext = xpToNext;
+        this.killsSinceOwn = killsSinceOwn;
+        this.killGate = killGate;
     }
 
     public static void encode(ArmyRosterPayload msg, FriendlyByteBuf buf) {
@@ -40,6 +53,11 @@ public class ArmyRosterPayload {
         buf.writeVarInt(msg.used);
         buf.writeVarInt(msg.cap);
         buf.writeEnum(msg.stance);
+        buf.writeVarInt(msg.level);
+        buf.writeVarInt(msg.xp);
+        buf.writeVarInt(msg.xpToNext == Integer.MAX_VALUE ? 0 : msg.xpToNext);
+        buf.writeVarInt(msg.killsSinceOwn);
+        buf.writeVarInt(msg.killGate);
         buf.writeVarInt(msg.rows.size());
         for (Row r : msg.rows) {
             buf.writeUUID(r.id);
@@ -58,13 +76,19 @@ public class ArmyRosterPayload {
         int used = buf.readVarInt();
         int cap = buf.readVarInt();
         ShadowStance stance = buf.readEnum(ShadowStance.class);
+        int level = buf.readVarInt();
+        int xp = buf.readVarInt();
+        int xpToNext = buf.readVarInt();
+        int killsSinceOwn = buf.readVarInt();
+        int killGate = buf.readVarInt();
         int n = buf.readVarInt();
         List<Row> rows = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
             rows.add(new Row(buf.readUUID(), buf.readUtf(), buf.readUtf(64), buf.readVarInt(), buf.readByte(),
-                    buf.readBoolean(), buf.readFloat(), buf.readFloat()));
+                    buf.readBoolean(), buf.readFloat(), buf.readFloat(),
+                    buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), buf.readByte(), buf.readBoolean()));
         }
-        return new ArmyRosterPayload(open, used, cap, stance, rows);
+        return new ArmyRosterPayload(open, used, cap, stance, rows, level, xp, xpToNext, killsSinceOwn, killGate);
     }
 
     public static void handle(ArmyRosterPayload msg, Supplier<NetworkEvent.Context> ctx) {

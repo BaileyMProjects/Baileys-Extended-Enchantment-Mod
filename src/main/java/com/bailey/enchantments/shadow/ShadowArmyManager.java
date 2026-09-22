@@ -64,6 +64,7 @@ public final class ShadowArmyManager {
     public static boolean deploy(ServerPlayer holder, UUID armyId, ShadowArmy army, ShadowArmy.Soldier soldier,
                                  @Nullable Vec3 at, boolean rise) {
         if (soldier.deployed && findEntity(holder.server, soldier.entityId) != null) return false;
+        if (!readyToDeploy(soldier)) return false;
 
         ServerLevel level = holder.serverLevel();
         Vec3 pos = at != null ? at : holder.position();
@@ -72,6 +73,14 @@ public final class ShadowArmyManager {
 
         ShadowData.markArmy(mob, holder.getUUID(), armyId, soldier.id, soldier.slots);
         applyName(mob, soldier);
+
+        // ⚠️ Level BEFORE health: the modifier raises max health, and setting current health
+        // first would leave the body looking wounded the moment it appears.
+        SoldierLevels.apply(mob, soldier.level);
+        if (soldier.storedHealth >= 0) {
+            mob.setHealth(Math.min(mob.getMaxHealth(), Math.max(1.0F, soldier.storedHealth)));
+        }
+
         ShadowAi.install(mob);
 
         // ⚠️ Roster BEFORE world. RequiemEvents.onJoin sweeps any body whose roster entry does
@@ -91,21 +100,48 @@ public final class ShadowArmyManager {
         return true;
     }
 
+    /**
+     * Field as much of the roster as this holder can carry.
+     *
+     * <p>⚠️ Two separate limits, and they are not the same thing. <b>Slots</b> belong to the
+     * holder's necromancer level, so a novice fielding a veteran's blade gets only part of it.
+     * <b>Bodies</b> are a flat ceiling, so forty slots of runts cannot become forty live mobs
+     * with AI on a server. Strongest first, so what does fit is the best of it.
+     */
     public static int deployAll(ServerPlayer holder, UUID armyId) {
         ShadowArmy army = ShadowArmies.get(holder.server).armyOf(armyId);
+        int cap = Necromancer.get(holder.server).slotsOf(holder.getUUID());
+
+        List<ShadowArmy.Soldier> order = new ArrayList<>(army.soldiers());
+        order.sort((a, b) -> Integer.compare(b.slots, a.slots));
+
+        int used = 0;
+        int bodies = 0;
         int n = 0;
-        for (ShadowArmy.Soldier s : new ArrayList<>(army.soldiers())) {
-            if (deploy(holder, armyId, army, s, null, false)) n++;
+        for (ShadowArmy.Soldier s : order) {
+            if (bodies >= ShadowBalance.MAX_DEPLOYED_BODIES) break;
+            if (used + s.slots > cap) continue;
+            if (deploy(holder, armyId, army, s, null, false)) {
+                used += s.slots;
+                bodies++;
+                n++;
+            }
         }
         return n;
     }
 
     // ---- recall ----------------------------------------------------------------------------
 
-    /** Pull one soldier back into the blade, unharmed. Safe if the body is already gone. */
+    /** Pull one soldier back into the blade, keeping the wounds it took. */
     public static void recall(MinecraftServer server, ShadowArmy army, ShadowArmy.Soldier soldier) {
         Entity body = findEntity(server, soldier.entityId);
         if (body != null && body.level() instanceof ServerLevel level) {
+            // ⚠️ Health is carried, not reset. Recalling a wounded shadow and redeploying it
+            // would otherwise be a free full heal, and the downed cooldown would mean nothing.
+            if (body instanceof LivingEntity living) {
+                soldier.storedHealth = living.getHealth();
+                soldier.maxHealth = living.getMaxHealth();
+            }
             ShadowSpawner.puff(level, body, 10);
             ShadowTeam.leave(body);
             body.discard();
@@ -149,7 +185,11 @@ public final class ShadowArmyManager {
         armies.markDirty();
     }
 
-    /** A deployed shadow died in the field. It is gone from the roster; its holder is told. */
+    /**
+     * A deployed shadow fell. ✅ <b>It is DOWNED, not destroyed</b> — Bailey, 2026-09-22: <i>"when
+     * your soldier dies it just goes back into your army and doesnt dissapear but they just sit
+     * at 0 health and slowly regenerate."</i> It keeps its level; only the body needs mending.
+     */
     public static void onShadowDied(LivingEntity shadow) {
         UUID rosterId = ShadowData.rosterId(shadow);
         UUID armyId = ShadowData.armyId(shadow);
@@ -162,7 +202,10 @@ public final class ShadowArmyManager {
         ShadowArmy army = armies.armyOf(armyId);
         ShadowArmy.Soldier s = army.find(rosterId);
         if (s == null) return;
-        army.remove(rosterId);
+        s.deployed = false;
+        s.entityId = null;
+        s.storedHealth = 0.0F;
+        s.maxHealth = shadow.getMaxHealth();
         if (!army.anyDeployed()) army.setHolder(null);
         armies.markDirty();
 
@@ -171,6 +214,17 @@ public final class ShadowArmyManager {
             owner.displayClientMessage(Component.translatable("baileys_enchantments.requiem.fallen", s.name)
                     .withStyle(ChatFormatting.DARK_RED), true);
         }
+    }
+
+    /**
+     * Can this soldier take the field? A downed one must mend first.
+     *
+     * <p>⚠️ Compared against the body's max health at its CURRENT level, which the roster does
+     * not know — so the fraction is judged against the stored value alone, treating -1 (never
+     * fought) as full. Good enough: what matters is that 0 blocks and a healed soldier does not.
+     */
+    public static boolean readyToDeploy(ShadowArmy.Soldier soldier) {
+        return soldier.storedHealth < 0 || soldier.storedHealth >= soldier.maxHealthEstimate() * ShadowBalance.DEPLOYABLE_AT;
     }
 
     // ---- helpers ----------------------------------------------------------------------------
