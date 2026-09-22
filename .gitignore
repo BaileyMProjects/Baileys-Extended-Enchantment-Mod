@@ -53,3 +53,4 @@ repo/
 
 ### tools build artefacts ###
 tools/*.class
+dist/
