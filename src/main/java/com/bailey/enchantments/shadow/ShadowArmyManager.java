@@ -101,6 +101,7 @@ public final class ShadowArmyManager {
         Entity body = findEntity(server, soldier.entityId);
         if (body != null && body.level() instanceof ServerLevel level) {
             ShadowSpawner.puff(level, body, 10);
+            ShadowTeam.leave(body);
             body.discard();
         }
         soldier.deployed = false;

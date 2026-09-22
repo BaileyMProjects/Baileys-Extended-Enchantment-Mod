@@ -18,6 +18,11 @@ import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
 import net.minecraftforge.event.entity.living.LivingConversionEvent;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.event.entity.living.LivingExperienceDropEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraft.server.level.ServerPlayer;
+import com.bailey.enchantments.network.ModNetwork;
+import com.bailey.enchantments.network.ShadowMarkPayload;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -65,6 +70,7 @@ public final class ShadowEvents {
             if (!(mob.level() instanceof ServerLevel level)) continue;
             if (level.getGameTime() >= ShadowData.expiresAt(mob)) {
                 ShadowSpawner.puff(level, mob, 12);
+                ShadowTeam.leave(mob);
                 mob.discard();
                 it.remove();
             }
@@ -82,6 +88,21 @@ public final class ShadowEvents {
 
     static void trackTemporary(Mob mob) {
         if (!TEMPORARY.contains(mob)) TEMPORARY.add(mob);
+    }
+
+    // ---- the look ---------------------------------------------------------------------------
+
+    /** The client cannot read the mark, so each viewer is told once as the shadow comes into view. */
+    @SubscribeEvent
+    public static void onStartTracking(PlayerEvent.StartTracking event) {
+        if (event.getEntity() instanceof ServerPlayer viewer && ShadowData.isShadow(event.getTarget())) {
+            ModNetwork.sendToPlayer(new ShadowMarkPayload(event.getTarget().getId()), viewer);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onDeath(LivingDeathEvent event) {
+        if (ShadowData.isShadow(event.getEntity())) ShadowTeam.leave(event.getEntity());
     }
 
     // ---- no loot ---------------------------------------------------------------------------

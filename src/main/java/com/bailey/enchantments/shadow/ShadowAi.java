@@ -63,6 +63,7 @@ public final class ShadowAi {
     private static void body(Mob mob) {
         mob.setPersistenceRequired();
         mob.setCanPickUpLoot(false);
+        ShadowTeam.join(mob);
 
         // ✅ Bailey: "give the undead permanent resistance" — a shadow zombie standing guard at
         // noon must not burn. Infinite, hidden, no particles.

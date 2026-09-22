@@ -50,6 +50,12 @@ public final class ModNetwork {
                 AriseCutscenePayload::decode,
                 AriseCutscenePayload::handle);
 
+        CHANNEL.registerMessage(id++,
+                ShadowMarkPayload.class,
+                ShadowMarkPayload::encode,
+                ShadowMarkPayload::decode,
+                ShadowMarkPayload::handle);
+
         // The rite tells its one viewer when to start and how it went.
         AriseRitual.setCutsceneSender(new AriseRitual.CutsceneSender() {
             @Override

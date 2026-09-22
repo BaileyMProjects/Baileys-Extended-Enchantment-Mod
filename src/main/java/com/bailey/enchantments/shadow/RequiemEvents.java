@@ -165,6 +165,7 @@ public final class RequiemEvents {
         ShadowArmy.Soldier s = armies.has(ownerId) ? armies.armyOf(ownerId).find(rosterId) : null;
         boolean legitimate = s != null && s.deployed && mob.getUUID().equals(s.entityId);
         if (!legitimate) {
+            ShadowTeam.leave(mob);
             mob.discard();
             event.setCanceled(true);
         }
