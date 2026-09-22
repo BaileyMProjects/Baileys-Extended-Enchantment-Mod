@@ -10,6 +10,7 @@ import com.bailey.enchantments.shadow.ShadowData;
 import com.bailey.enchantments.shadow.ShadowStance;
 import com.bailey.enchantments.shadow.ShadowStances;
 
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.monster.Enemy;
@@ -149,11 +150,28 @@ public final class ShadowTargeting {
 
     // ---- validity --------------------------------------------------------------------------
 
+    /**
+     * ✅ <b>Players are valid targets</b>, and a shadow will kill one. Bailey, 2026-09-22: <i>"make
+     * sure that the shadow army does in fact kill other players."</i> The only players excluded
+     * are the owner, creative and spectator — and, on a server with PvP switched off, all of
+     * them.
+     *
+     * <p>⚠️ <b>Including the player a shadow was raised from.</b> Nothing here protects them: a
+     * shadow's ally is its <i>owner</i>, and the corpse it was made from is a stranger to it.
+     *
+     * <p>⚠️ The PvP check is not optional. A mob hurting a player never consults
+     * {@code server.isPvpAllowed()} — that gates {@code Player.canHarmPlayer} only — so without
+     * this an army would be a way round a no-PvP server.
+     */
     public static boolean valid(Mob mob, @Nullable LivingEntity e, Player owner) {
         if (e == null || !e.isAlive() || e == owner || e == mob) return false;
         if (e.level() != mob.level()) return false;
         if (ShadowData.areAllies(e, mob)) return false;
-        if (e instanceof Player p && (p.isCreative() || p.isSpectator())) return false;
+        if (e instanceof Player p) {
+            if (p.isCreative() || p.isSpectator()) return false;
+            MinecraftServer server = p.getServer();
+            if (server != null && !server.isPvpAllowed()) return false;
+        }
         return e.distanceToSqr(owner) <= GIVE_UP_RADIUS * GIVE_UP_RADIUS;
     }
 

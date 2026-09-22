@@ -9,6 +9,10 @@ import com.bailey.enchantments.BaileysEnchantments;
 
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.MinecraftServer;
+import net.minecraftforge.server.ServerLifecycleHooks;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -88,18 +92,50 @@ public final class ShadowEvents {
             Mob mob = it.next();
             if (mob.isRemoved() || !mob.isAlive() || !ShadowData.isShadow(mob)) { it.remove(); continue; }
             if (!(mob.level() instanceof ServerLevel level)) continue;
-            if (level.getGameTime() % 3 != 0) continue;
 
-            double w = mob.getBbWidth(), h = mob.getBbHeight();
-            int count = Math.max(1, (int) Math.min(6, w * h));
-            level.sendParticles(ParticleTypes.SCULK_SOUL,
-                    mob.getX(), mob.getY() + h * 0.5, mob.getZ(),
-                    count, w * 0.35, h * 0.4, w * 0.35, 0.005);
-            if (level.getGameTime() % 12 == 0) {
-                level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME,
-                        mob.getX(), mob.getY() + h * 0.6, mob.getZ(),
-                        1, w * 0.3, h * 0.3, w * 0.3, 0.0);
-            }
+            // ⚠️ EVERY TICK, not every third. Refusing fire damage does not put out the flames:
+            // the burning flag is set by touching fire and renders regardless. Bailey, 2026-09-22:
+            // "I do not want them to even set on fire when its apart of the army."
+            if (mob.getRemainingFireTicks() > 0) mob.clearFire();
+            if (mob.getTicksFrozen() > 0) mob.setTicksFrozen(0);
+
+            if (level.getGameTime() % 3 != 0) continue;
+            soulAura(level, mob.getX(), mob.getY(), mob.getZ(), mob.getBbWidth(), mob.getBbHeight());
+        }
+    }
+
+    /**
+     * The drifting soul aura. Used on shadows and, while an army is out, on its master — Bailey,
+     * 2026-09-22: <i>"I want the user to have the same particles around him when the shadow army
+     * is active to show who the user is."</i> A necromancer with an army should be identifiable
+     * across a battlefield.
+     */
+    static void soulAura(ServerLevel level, double x, double y, double z, double w, double h) {
+        int count = Math.max(1, (int) Math.min(6, w * h));
+        level.sendParticles(ParticleTypes.SCULK_SOUL, x, y + h * 0.5, z,
+                count, w * 0.35, h * 0.4, w * 0.35, 0.005);
+        if (level.getGameTime() % 12 == 0) {
+            level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, x, y + h * 0.6, z,
+                    1, w * 0.3, h * 0.3, w * 0.3, 0.0);
+        }
+    }
+
+    /**
+     * The master wears the same aura as his shadows while they are out.
+     *
+     * <p>✅ Bailey, 2026-09-22: <i>"I want the user to have the same particles around him when
+     * the shadow army is active to show who the user is."</i> On a battlefield the necromancer
+     * should be the one you can pick out. Ticked here rather than with the boons, which only run
+     * once a second and would make the aura sputter.
+     */
+    private static void ownerAura() {
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        if (server == null || server.getTickCount() % 3 != 0) return;
+        ShadowArmies armies = ShadowArmies.get(server);
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (armies.deployedBy(player.getUUID()).isEmpty()) continue;
+            soulAura(player.serverLevel(), player.getX(), player.getY(), player.getZ(),
+                    player.getBbWidth(), player.getBbHeight());
         }
     }
 
@@ -107,6 +143,7 @@ public final class ShadowEvents {
     public static void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         aura();
+        ownerAura();
         if (TEMPORARY.isEmpty()) return;
 
         Iterator<Mob> it = TEMPORARY.iterator();
@@ -165,9 +202,31 @@ public final class ShadowEvents {
 
     // ---- no friendly fire -------------------------------------------------------------------
 
+    /**
+     * A shadow cannot hurt its own side, and its own side cannot hurt it. Everything else can.
+     *
+     * <p>⚠️ Deliberately narrow, because Bailey asked for exactly this: <i>"make sure that the
+     * shadow army does in fact kill other players... and that other players can damage the
+     * shadow army."</i> Only {@link ShadowData#areAllies} blocks a hit, and that is true just for
+     * a shadow and its own master, or two shadows of one master. Another player, another
+     * player's army, and <b>the very player a shadow was raised from</b> are all fair game — the
+     * raised player is not the owner, so nothing here protects them from their own corpse.
+     */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onAttack(LivingAttackEvent event) {
         LivingEntity victim = event.getEntity();
+
+        // Built-in immunities, ahead of everything. Bailey wanted these in the body rather than
+        // as potion effects, so there is no icon, no swirl, and nothing to time out.
+        if (ShadowData.isShadow(victim)) {
+            if (event.getSource().is(DamageTypeTags.IS_FIRE)
+                    || event.getSource().is(DamageTypeTags.IS_FREEZING)) {
+                victim.clearFire();
+                event.setCanceled(true);
+                return;
+            }
+        }
+
         Entity attacker = event.getSource().getEntity();
         if (attacker == null) return;
         if (!ShadowData.isShadow(victim) && !ShadowData.isShadow(attacker)) return;
@@ -200,6 +259,16 @@ public final class ShadowEvents {
      */
     @SubscribeEvent
     public static void onEffect(MobEffectEvent.Applicable event) {
+        // ✅ A shadow takes no debuff at all. Bailey, 2026-09-22: "make them immune to debuffs
+        // like fire and weakness built into their core. So no potion effects used." Refusing the
+        // effect outright means no icon, no swirl and nothing that can expire — and a shadow
+        // cannot be Weakness'd into uselessness by the first witch it meets.
+        if (ShadowData.isShadow(event.getEntity())
+                && event.getEffectInstance().getEffect().getCategory() == MobEffectCategory.HARMFUL) {
+            event.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);
+            return;
+        }
+
         if (event.getEffectInstance().getEffect() != MobEffects.DARKNESS) return;
         if (!(event.getEntity() instanceof Player player) || player.level().isClientSide()) return;
         AABB near = player.getBoundingBox().inflate(21.0);

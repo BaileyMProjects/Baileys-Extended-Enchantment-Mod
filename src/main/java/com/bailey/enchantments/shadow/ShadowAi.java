@@ -126,9 +126,12 @@ public final class ShadowAi {
         mob.setCanPickUpLoot(false);
         ShadowTeam.join(mob);
 
-        // ✅ Bailey: "give the undead permanent resistance" — a shadow zombie standing guard at
-        // noon must not burn. Infinite, hidden, no particles.
-        mob.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, MobEffectInstance.INFINITE_DURATION, 0, false, false));
+        // ⚠️ NO POTION EFFECT FOR FIRE. Bailey, 2026-09-22: "fire resistance on a zombie still
+        // sets them on fire which looks ugly I do not want them to even set on fire when its
+        // apart of the army." Fire Resistance stops the damage but not the flames, and it puts
+        // swirls on the model besides. Immunity is now built into the body instead:
+        // ShadowEvents refuses fire damage, refuses every harmful effect, and clears the burning
+        // flag every tick so a shadow never so much as flickers.
 
         // A shadow zombie taking a hit would otherwise call vanilla reinforcements.
         AttributeInstance reinforcements = mob.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE);
