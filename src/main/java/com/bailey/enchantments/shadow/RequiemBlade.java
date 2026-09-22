@@ -34,6 +34,7 @@ public final class RequiemBlade {
     private RequiemBlade() {}
 
     private static final String ARMY_KEY = "BaileysArmy";
+    private static final String FOUNDER_KEY = "BaileysArmyFounder";
 
     public static boolean isRequiem(ItemStack stack) {
         return !stack.isEmpty() && Ultimates.hasUltimate(stack, ModEnchantments.REQUIEM.get());
@@ -63,15 +64,55 @@ public final class RequiemBlade {
         return tag != null && tag.hasUUID(ARMY_KEY) ? tag.getUUID(ARMY_KEY) : null;
     }
 
+    /** Who raised this blade's army. Only they may command it. */
+    @Nullable
+    public static UUID founder(ItemStack blade) {
+        if (!isRequiem(blade)) return null;
+        CompoundTag tag = blade.getTag();
+        return tag != null && tag.hasUUID(FOUNDER_KEY) ? tag.getUUID(FOUNDER_KEY) : null;
+    }
+
     /**
-     * The blade's army id, assigning one if it has none. A blade with no id inherits the
-     * holder's UUID, which is exactly the key their pre-blade army was stored under.
+     * The army this player commands with this blade, assigning one if the blade is fresh — or
+     * <b>null</b> if the blade belongs to somebody else.
+     *
+     * <p>✅ <b>An army is bound to the blade AND to the player who raised it.</b> Bailey,
+     * 2026-09-22: <i>"The army never sticks for another player but the army always sticks with
+     * the intended player even if they drop it. It is only until they are using a different
+     * weapon or that weapon is burned that they no longer keep that army and its progress."</i>
+     *
+     * <p>So the three cases are:
+     * <ul>
+     *   <li><b>Your own blade</b> — yours, dropped and picked up a hundred times.
+     *   <li><b>A different blade</b> — a different army, starting empty. Your necromancer level
+     *       is untouched: it lives on you. This is what stops a level 1 player being handed four
+     *       Wardens on a sword.
+     *   <li><b>Somebody else's blade</b> — nothing. Not their army, and not a fresh one either,
+     *       because overwriting the id would destroy the owner's roster the moment a thief
+     *       right-clicked.
+     * </ul>
+     *
+     * <p>⚠️ A blade from before this rule has an id but no founder. It is adopted by whoever
+     * holds it first, which is the player whose UUID that id already was.
      */
+    @Nullable
     public static UUID bind(ItemStack blade, Player holder) {
+        if (!isRequiem(blade)) return null;
         UUID existing = armyId(blade);
-        if (existing != null) return existing;
-        UUID id = holder.getUUID();
-        blade.getOrCreateTag().putUUID(ARMY_KEY, id);
+        UUID founder = founder(blade);
+
+        if (existing != null) {
+            if (founder == null) {
+                blade.getOrCreateTag().putUUID(FOUNDER_KEY, holder.getUUID());
+                return existing;
+            }
+            return founder.equals(holder.getUUID()) ? existing : null;
+        }
+
+        UUID id = UUID.randomUUID();
+        CompoundTag tag = blade.getOrCreateTag();
+        tag.putUUID(ARMY_KEY, id);
+        tag.putUUID(FOUNDER_KEY, holder.getUUID());
         return id;
     }
 

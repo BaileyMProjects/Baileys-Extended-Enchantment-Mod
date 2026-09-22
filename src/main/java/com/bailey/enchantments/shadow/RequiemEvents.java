@@ -70,7 +70,10 @@ public final class RequiemEvents {
         // A kill worth remembering.
         if (!(event.getSource().getEntity() instanceof ServerPlayer killer)) return;
         if (killer == victim) return;                             // no raising yourself
-        if (RequiemBlade.held(killer).isEmpty()) return;
+        // ⚠️ The blade must be theirs, not merely in their hand. A thief wielding someone else's
+        // Requiem cannot Arise, so leaving remnants they can never use would only mislead them.
+        ItemStack blade = RequiemBlade.held(killer);
+        if (blade.isEmpty() || RequiemBlade.bind(blade, killer) == null) return;
         if (ShadowData.isShadow(victim)) return;
         if (!(victim instanceof Mob) && !(victim instanceof ServerPlayer)) return;
         if (!ShadowClassifier.isRaisable(victim)) return;
@@ -101,6 +104,11 @@ public final class RequiemEvents {
         event.setCanceled(true);
 
         UUID armyId = RequiemBlade.bind(held, player);
+        if (armyId == null) {
+            player.displayClientMessage(Component.translatable("baileys_enchantments.requiem.not_your_blade")
+                    .withStyle(ChatFormatting.RED), true);
+            return;
+        }
         ShadowArmy army = ShadowArmies.get(player.server).armyOf(armyId);
         if (army.soldiers().isEmpty()) {
             player.displayClientMessage(Component.translatable("baileys_enchantments.requiem.none")

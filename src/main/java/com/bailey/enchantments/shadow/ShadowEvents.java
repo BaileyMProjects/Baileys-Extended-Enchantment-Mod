@@ -134,8 +134,35 @@ public final class ShadowEvents {
         ShadowArmies armies = ShadowArmies.get(server);
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (armies.deployedBy(player.getUUID()).isEmpty()) continue;
-            soulAura(player.serverLevel(), player.getX(), player.getY(), player.getZ(),
-                    player.getBbWidth(), player.getBbHeight());
+            auraForOthers(player);
+        }
+    }
+
+    /**
+     * The master's aura, sent to everyone <b>except</b> him.
+     *
+     * <p>⚠️ Bailey, 2026-09-22: <i>"make sure that the particles are not visible to the player
+     * but to other players so it doesnt block the view."</i> Quite right — a cloud of soul
+     * particles centred on your own head in first person is a face full of fog. The mark is for
+     * other people to read, so the owner is skipped and everyone else in the level is sent it
+     * individually.
+     */
+    private static void auraForOthers(ServerPlayer owner) {
+        ServerLevel level = owner.serverLevel();
+        double w = owner.getBbWidth(), h = owner.getBbHeight();
+        int count = Math.max(1, (int) Math.min(6, w * h));
+        boolean flame = level.getGameTime() % 12 == 0;
+
+        for (ServerPlayer viewer : level.players()) {
+            if (viewer == owner) continue;
+            level.sendParticles(viewer, ParticleTypes.SCULK_SOUL, false,
+                    owner.getX(), owner.getY() + h * 0.5, owner.getZ(),
+                    count, w * 0.35, h * 0.4, w * 0.35, 0.005);
+            if (flame) {
+                level.sendParticles(viewer, ParticleTypes.SOUL_FIRE_FLAME, false,
+                        owner.getX(), owner.getY() + h * 0.6, owner.getZ(),
+                        1, w * 0.3, h * 0.3, w * 0.3, 0.0);
+            }
         }
     }
 

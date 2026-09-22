@@ -131,6 +131,7 @@
   "baileys_enchantments.requiem.fallen": "%s has fallen.",
   "baileys_enchantments.requiem.no_weapon": "Hold your Requiem blade.",
   "baileys_enchantments.requiem.blade_lost": "The blade has left your hands. Your shadows return to it.",
+  "baileys_enchantments.requiem.not_your_blade": "This blade answers to another hand.",
   "baileys_enchantments.necro.level": "Your dominion deepens. Level %s — %s slots.",
   "baileys_enchantments.necro.soldier_level": "%s reaches level %s (intellect %s).",
   "baileys_enchantments.necro.gate": "Your shadows learn nothing more until you kill something yourself.",

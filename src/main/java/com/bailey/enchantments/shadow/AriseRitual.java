@@ -86,6 +86,11 @@ public final class AriseRitual {
         ItemStack blade = RequiemBlade.held(player);
         if (blade.isEmpty()) return;
         UUID armyId = RequiemBlade.bind(blade, player);
+        if (armyId == null) {
+            player.displayClientMessage(Component.translatable("baileys_enchantments.requiem.not_your_blade")
+                    .withStyle(ChatFormatting.RED), true);
+            return;
+        }
 
         if (RUNNING.containsKey(player.getUUID())) {
             player.displayClientMessage(Component.translatable("baileys_enchantments.requiem.busy")

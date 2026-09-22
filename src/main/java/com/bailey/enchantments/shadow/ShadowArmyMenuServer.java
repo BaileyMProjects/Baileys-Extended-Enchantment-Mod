@@ -40,6 +40,13 @@ public final class ShadowArmyMenuServer {
             return;
         }
         UUID armyId = RequiemBlade.bind(blade, player);
+        if (armyId == null) {
+            if (action == ArmyActionPayload.Action.OPEN) {
+                player.displayClientMessage(Component.translatable("baileys_enchantments.requiem.not_your_blade")
+                        .withStyle(ChatFormatting.RED), true);
+            }
+            return;
+        }
         ShadowArmies armies = ShadowArmies.get(player.server);
         ShadowArmy army = armies.armyOf(armyId);
 
