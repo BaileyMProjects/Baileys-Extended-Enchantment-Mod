@@ -10,6 +10,7 @@ import com.bailey.enchantments.util.EnchantPower;
 import com.bailey.enchantments.util.DeepDarkBalance;
 import com.bailey.enchantments.util.OverCaps;
 import com.bailey.enchantments.util.Secrets;
+import com.bailey.enchantments.util.SecretLedger;
 import com.bailey.enchantments.util.Ultimates;
 
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -140,6 +141,12 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
     // server state any other way.
     private final DataSlot secretMode = DataSlot.standalone();
 
+    // The Secret standing in the way of a gamble on this tab, as a registry id, or -1.
+    // ⚠️ A DataSlot because the reason has to reach the SCREEN: an option list that silently
+    // came back empty is indistinguishable from "wrong items in the slots", and a player who
+    // cannot tell those apart will read the rule as a bug.
+    private final DataSlot secretBlockedBy = DataSlot.standalone();
+
     private final DataSlot disenchantClue = DataSlot.standalone();
     private final DataSlot disenchantClueLevel = DataSlot.standalone();
 
@@ -241,6 +248,9 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
 
         this.secretMode.set(0);
         this.addDataSlot(this.secretMode);
+
+        this.secretBlockedBy.set(-1);
+        this.addDataSlot(this.secretBlockedBy);
     }
 
     // Structure power at this anvil. 0 on the client, where access is NULL — every
@@ -275,6 +285,12 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
     // Whether the Secret toggle is flicked on. Drives the crystal the ritual demands, the
     // eligible-base list, the slot icon, and everything the screen draws in red.
     public boolean isSecretMode() { return this.secretMode.get() != 0; }
+
+    /** The Secret blocking a gamble on this tab, or null. Drives the warning on screen. */
+    public Enchantment getSecretBlockedBy() {
+        int id = this.secretBlockedBy.get();
+        return id < 0 ? null : BuiltInRegistries.ENCHANTMENT.byId(id);
+    }
 
     // The odds, for the screen to show. Surfaced as a percent so the warning text and the
     // actual roll can never disagree: both read DeepDarkBalance.
@@ -409,7 +425,12 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
             // list entirely, so they never appear as a removal target — not merely
             // rejected on click. The only exits remain a full grindstone wipe or
             // re-running the ritual with a different Ultimate.
-            if (Ultimates.isUltimate(ench)) continue;
+            //
+            // ⚠️ SECRETS ARE THE ONE EXCEPTION, added 2026-09-22. A player may hold only one
+            // weapon Secret and one armour Secret at a time (-> SecretLedger), so there has to
+            // be a deliberate, in-world way to give one up. This is it: strip the Secret here
+            // and the category frees. Without it the rule would be a permanent lock.
+            if (Ultimates.isUltimate(ench) && !Secrets.isSecret(ench)) continue;
             this.removableOptions.add(ench);
         }
         // Stable order, so cycling doesn't reshuffle between recomputes.
@@ -479,6 +500,7 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
 
         Map<Enchantment, Integer> current = EnchantmentHelper.getEnchantments(gear);
 
+        this.secretBlockedBy.set(-1);
         List<Enchantment> options = new ArrayList<>();
         for (Map.Entry<Enchantment, Integer> entry : current.entrySet()) {
             Enchantment ench = entry.getKey();
@@ -494,6 +516,17 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
                     ? Secrets.getSecretForUltimate(ench)
                     : Ultimates.getUltimateForBase(ench, gear);
             if (target == null) continue;
+            // ⚠️ ONE WEAPON SECRET AND ONE ARMOUR SECRET AT A TIME (Bailey, 2026-09-22). A
+            // gamble the player could never win is not offered at all -- the option list is
+            // what the whole tab is built from, so dropping it here removes the result, the
+            // cost and the take in one go rather than refusing at the last step.
+            if (secret) {
+                Enchantment blocker = this.blockingSecret(target);
+                if (blocker != null) {
+                    this.secretBlockedBy.set(BuiltInRegistries.ENCHANTMENT.getId(blocker));
+                    continue;
+                }
+            }
             options.add(ench);
         }
 
@@ -535,6 +568,16 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
         this.ultimateResult.setItem(0, result);
         this.ultimateReady.set(1);
         this.broadcastChanges();
+    }
+
+    /**
+     * The Secret already held in this one's category, or null. Server-side only: the client's
+     * menu has no server to ask, and answering "nothing blocks" there is right, because the
+     * server rebuilds the option list and the client only draws what it is sent.
+     */
+    private Enchantment blockingSecret(Enchantment wanted) {
+        if (!(this.owner instanceof ServerPlayer sp)) return null;
+        return SecretLedger.get(sp.server).blocking(sp.getUUID(), wanted);
     }
 
     // The Secret roll. Server-side, called once, from onTake only.
@@ -808,6 +851,18 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
             if (!player.getAbilities().instabuild) {
                 player.giveExperienceLevels(-AncientAnvilMenu.this.getDisenchantCost());
             }
+
+            // A stripped Secret frees its category in the ledger, so the player may gamble for a
+            // different one. Read from the INPUT, because the result no longer carries it.
+            ItemStack stripped = AncientAnvilMenu.this.disenchantInput.getItem(0);
+            if (player instanceof ServerPlayer sp && !stripped.isEmpty()) {
+                for (Enchantment ench : EnchantmentHelper.getEnchantments(stripped).keySet()) {
+                    if (Secrets.isSecret(ench) && EnchantmentHelper.getItemEnchantmentLevel(ench, stack) == 0) {
+                        SecretLedger.get(sp.server).onWiped(sp, ench);
+                    }
+                }
+            }
+
             AncientAnvilMenu.this.selectedDisenchant.set(0);
             // Clearing the input fires setChanged -> slotsChanged, which rebuilds the
             // (now empty) result. The removed enchantment is simply gone.
@@ -851,6 +906,8 @@ public class AncientAnvilMenu extends AbstractContainerMenu {
                             new HashMap<>(EnchantmentHelper.getEnchantments(stack));
                     enchants.put(won, 1);
                     EnchantmentHelper.setEnchantments(enchants, stack);
+                    // The category is now spoken for until this Secret is stripped.
+                    SecretLedger.get(sp.server).record(sp.getUUID(), won);
                 }
 
                 // ATTEMPTING is what reveals the Secret's name -- win or lose. Losing already

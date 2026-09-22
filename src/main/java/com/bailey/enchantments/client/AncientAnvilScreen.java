@@ -278,9 +278,22 @@ public class AncientAnvilScreen extends AbstractContainerScreen<AncientAnvilMenu
                 guiGraphics.drawString(this.font, indicator, 132, 52, 0xFFCCCCCC, false);
             }
         } else {
-            Component hint = Component.translatable("container." + BaileysEnchantments.MODID
-                    + (this.menu.isSecretMode() ? ".secret.hint" : ".ultimate.hint"));
-            guiGraphics.drawString(this.font, hint, 8, 18, 0xFFAAAAAA, false);
+            // ⚠️ "One Secret per category" must say so. An empty option list looks exactly like
+            // the wrong items in the slots, and a player who cannot tell them apart reports the
+            // rule as a bug -- the same reasoning as the gamble warning below.
+            Enchantment blocker = this.menu.getSecretBlockedBy();
+            if (this.menu.isSecretMode() && blocker != null) {
+                Component held = SecretReveal.isRevealedClient()
+                        ? Component.translatable(blocker.getDescriptionId())
+                        : Component.translatable(blocker.getDescriptionId()).withStyle(s -> s.withObfuscated(true));
+                guiGraphics.drawString(this.font, Component.translatable(
+                        "container." + BaileysEnchantments.MODID + ".secret.blocked", held),
+                        8, 18, 0xFFFF6060, false);
+            } else {
+                Component hint = Component.translatable("container." + BaileysEnchantments.MODID
+                        + (this.menu.isSecretMode() ? ".secret.hint" : ".ultimate.hint"));
+                guiGraphics.drawString(this.font, hint, 8, 18, 0xFFAAAAAA, false);
+            }
         }
 
         if (tab == AncientAnvilMenu.TAB_ULTIMATE) {
