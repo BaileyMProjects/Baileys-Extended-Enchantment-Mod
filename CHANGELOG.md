@@ -7,6 +7,51 @@ something shipped broken, it gets written down here.
 
 ---
 
+## 1.2.0 — UNRELEASED, built overnight 2026-09-22, never launched
+
+The Shadow Monarch update. Two new enchantments on the Smite line, and everything that comes
+with raising the dead. Also carries the evasion armour line (Mirage → Dissonance) and Resonance's
+right-click ability, which were built after 1.1.0 was jarred.
+
+⚠️ **Every number in this release is a first guess.** It was designed and built in one night on
+Bailey's authority and has not been played. Expect tuning.
+
+### ✨ Added — the Smite line
+
+- **Umbra** (Ultimate, from Smite V). Smite VII damage against the undead. Any kill has a 20%
+  chance to raise a temporary shadow of the victim (30s, two at once) that fights for you.
+- **Requiem** (Secret, gambled from Umbra). Smite VII, and *Arise*. Kills leave a shadow remnant
+  for ten seconds; sneak-click it with the weapon to bind the victim into your army.
+  Right-click deploys the army, sneak-click the air recalls it. Death, logout and dimension
+  changes recall it automatically.
+- **Every mob type is costed in slots** — vanilla or modded — by a formula on its health,
+  damage and armour. A zombie is 1 slot, an enderman 3, a golem 5, a Warden 8, the dragon 10.
+  The army holds 12. The full table for your pack is written to
+  `config/baileys_enchantments/shadow_report.json` at server start; pin any cost in
+  `shadow_overrides.json`; forbid a type with the `#baileys_enchantments:unraisable` tag.
+- **Strong shadows need a rite.** Elites (5–7 slots) rise 50% of the time per attempt, Monarchs
+  (8+) 35%, three attempts per remnant, with a cutscene. Nothing is ever held against the
+  player: a failed remnant fades and you kill another.
+- **Players can be raised**, wearing the gear they died in, with their skin.
+- **The Ender Dragon can be raised.** She circles you and dives at what you fight. She cannot
+  break blocks.
+- **Shadows are a bodyguard, not a grinder.** They wander near you, follow you, and fight what
+  fights you or what you fight — a player who hits you above everything else. Three stances:
+  Guard, Passive, Aggressive.
+- **Shadows render black and blue**, with a blue glow outline and soul particles, whatever mod
+  they came from.
+- **The Shadow Army screen** (default key G): roster with previews, per-shadow deploy, recall,
+  release and rename, deploy/recall all, stance.
+
+### Rules worth knowing
+
+- Shadows drop nothing and give no experience. Ever.
+- Shadows never burn in daylight, never convert (zombie → drowned, piglin → zombified), never
+  grief blocks, and cannot hurt their owner or each other.
+- A shadow that dies in the field is gone from the roster.
+
+---
+
 ## 1.1.0
 
 The first release since the 1.20.1 port. It adds the Deep Dark expansion, the Secret
