@@ -10,6 +10,7 @@ import com.bailey.enchantments.util.Ultimates;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
@@ -51,12 +52,20 @@ public class UltimateTooltipHandler {
             .withColor(TextColor.fromRgb(0xAAAAAA))
             .withItalic(true);
 
+    /** Dimmer than the descriptions, so the hint reads as chrome rather than content. */
+    private static final Style HINT_STYLE = Style.EMPTY
+            .withColor(TextColor.fromRgb(0x6A6A78))
+            .withItalic(true);
+
     @SubscribeEvent
     public static void onItemTooltip(ItemTooltipEvent event) {
         Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(event.getItemStack());
         if (enchantments.isEmpty()) return;
 
         List<Component> tooltip = event.getToolTip();
+        boolean details = detailsShown();
+        boolean anyOurs = false;
+
         for (Enchantment ench : enchantments.keySet()) {
             ResourceLocation key = ForgeRegistries.ENCHANTMENTS.getKey(ench);
             // ✅ EVERY enchantment of ours gets a description, not only the Ultimates — Bailey,
@@ -64,6 +73,7 @@ public class UltimateTooltipHandler {
             // Venom, Vein Miner and the rest had descriptions written and never shown, because
             // this loop skipped anything that was not an Ultimate.
             if (key == null || !key.getNamespace().equals(BaileysEnchantments.MODID)) continue;
+            anyOurs = true;
             boolean ultimate = Ultimates.isUltimate(ench);
             String translationKey = "enchantment." + key.getNamespace() + "." + key.getPath();
 
@@ -77,10 +87,16 @@ public class UltimateTooltipHandler {
                                 ? secretName(translationKey)
                                 : Component.translatable(translationKey).withStyle(ULTIMATE_STYLE));
                     }
-                    tooltip.add(i + 1, description(ench, translationKey));
+                    if (details) tooltip.add(i + 1, description(ench, translationKey));
                     break;
                 }
             }
+        }
+
+        // One hint for the whole item, not one per enchantment.
+        if (anyOurs && !details) {
+            tooltip.add(Component.translatable("baileys_enchantments.tooltip.hold_shift")
+                    .withStyle(HINT_STYLE));
         }
     }
 
@@ -110,6 +126,21 @@ public class UltimateTooltipHandler {
                 .append(Component.literal("  "))
                 .append(Component.translatable("baileys_enchantments.secret.needs_set")
                         .withStyle(s -> s.withColor(SECRET_RED).withItalic(true)));
+    }
+
+    /**
+     * ✅ <b>Descriptions are behind Shift</b> — Bailey, 2026-09-22: <i>"the tooltips I think
+     * should be toggle since they are really big descriptions but useful."</i>
+     *
+     * <p>They are long on purpose, and a sword with four of our enchantments on it was burying
+     * the item's own stats under a wall of text. Held Shift shows them all; otherwise one grey
+     * hint line, once, however many enchantments are on the item.
+     *
+     * <p>⚠️ The <b>name</b> is never hidden — only the description. A Secret's colour and
+     * scramble are how the tier reads at a glance, and that has to survive a closed tooltip.
+     */
+    private static boolean detailsShown() {
+        return Screen.hasShiftDown();
     }
 
     /** An armour Secret the viewer is not yet wearing a full set of. */

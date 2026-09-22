@@ -106,7 +106,29 @@ public final class ImmortalAbility {
 
     // ---- the ward ------------------------------------------------------------------------------
 
-    /** Called from the network layer when the keybind is pressed. */
+    /**
+     * ✅ <b>Sneak + right-click with an empty hand</b>, exactly like Dissonance's mode — Bailey,
+     * 2026-09-22: <i>"just change it to be shift click to activate rather than a seperate
+     * bind."</i>
+     *
+     * <p>⚠️ It cannot collide with Dissonance despite sharing the input, because a player may
+     * hold <b>one armour Secret at a time</b> — the ledger guarantees it, so only one of the two
+     * handlers can ever pass its own gate.
+     *
+     * <p>⚠️ The empty hand is what keeps it clear of Requiem, whose sneak + right-click recalls
+     * an army and needs the blade in hand.
+     */
+    @SubscribeEvent
+    public static void onRightClickBlock(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock event) {
+        if (event.getHand() != net.minecraft.world.InteractionHand.MAIN_HAND) return;
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        if (!player.isShiftKeyDown() || !player.getMainHandItem().isEmpty()) return;
+        if (!hasFullSet(player)) return;
+        activate(player);
+        event.setCanceled(true);
+    }
+
+    /** Called when the ability is asked for: from the block click, or from clicking air. */
     public static void activate(ServerPlayer player) {
         if (!hasFullSet(player)) {
             player.displayClientMessage(Component.translatable("baileys_enchantments.immortal.no_set")

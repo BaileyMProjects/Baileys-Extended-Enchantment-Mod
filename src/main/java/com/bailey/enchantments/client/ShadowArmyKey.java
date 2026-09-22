@@ -27,20 +27,12 @@ public final class ShadowArmyKey {
     public static final KeyMapping OPEN = new KeyMapping("key.baileys_enchantments.shadow_army",
             KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, "key.categories.baileys_enchantments");
 
-    /**
-     * Immortal's ward. ⚠️ A key of its own, deliberately: Bailey asked for it to be <i>"a
-     * different keybind to resonance so it does not overlap"</i>, and armour has no use action
-     * to hang a right-click on regardless.
-     */
-    public static final KeyMapping IMMORTAL = new KeyMapping("key.baileys_enchantments.immortal",
-            KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, "key.categories.baileys_enchantments");
 
     @Mod.EventBusSubscriber(modid = BaileysEnchantments.MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static final class Registration {
         @SubscribeEvent
         public static void onRegisterKeys(RegisterKeyMappingsEvent event) {
             event.register(OPEN);
-            event.register(IMMORTAL);
         }
     }
 
@@ -53,9 +45,6 @@ public final class ShadowArmyKey {
             if (mc.player == null || mc.screen != null) return;
             while (OPEN.consumeClick()) {
                 ModNetwork.sendToServer(ArmyActionPayload.of(ArmyActionPayload.Action.OPEN));
-            }
-            while (IMMORTAL.consumeClick()) {
-                ModNetwork.sendToServer(new SecretAbilityPayload(SecretAbilityPayload.Ability.IMMORTAL));
             }
         }
     }

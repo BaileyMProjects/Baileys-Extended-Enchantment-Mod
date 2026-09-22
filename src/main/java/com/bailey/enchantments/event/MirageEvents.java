@@ -11,6 +11,8 @@ import com.bailey.enchantments.network.ModNetwork;
 import com.bailey.enchantments.util.DeepDark;
 import com.bailey.enchantments.util.DeepDarkBalance;
 
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -323,7 +325,19 @@ public final class MirageEvents {
         if (event.getHand() != InteractionHand.MAIN_HAND) return;
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         if (!player.getMainHandItem().isEmpty()) return;
-        if (!canUseMode(player)) return;
+
+        // 🐛 FOUND IN PLAY 2026-09-22. Bailey: "dissonances ability just was not working for
+        // some reason im not sure if it was binded to something else." It was not a binding —
+        // it was this gate, failing in total silence. Three pieces of Dissonance and an empty
+        // hand looks exactly like a broken enchantment. Now it says which of the two is wrong.
+        if (!canUseMode(player)) {
+            if (player.isShiftKeyDown() && dissonancePieces(player) > 0) {
+                player.displayClientMessage(Component.translatable(
+                        "baileys_enchantments.dissonance.needs_set", dissonancePieces(player))
+                        .withStyle(ChatFormatting.GRAY), true);
+            }
+            return;
+        }
 
         long now = player.level().getGameTime();
 
