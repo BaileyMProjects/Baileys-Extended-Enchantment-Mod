@@ -21,9 +21,51 @@ public final class ShadowBalance {
     /** Damage is divided by this before it multiplies health. 4 → a 30-damage Warden × 8.5. */
     public static final double DAMAGE_WEIGHT = 4.0;
 
-    /** Slot cost floor and ceiling. The ceiling only matters for absurd modded bosses. */
+    /**
+     * Slot cost floor and ceiling.
+     *
+     * <p>⚠️ Raised to 30 on 2026-09-22. A modded mob with a fight-ending ability should be able
+     * to cost most of a maxed army on its own; 20 was not enough headroom once observation
+     * started multiplying threat.
+     */
     public static final int MIN_SLOTS = 1;
-    public static final int MAX_SLOTS = 20;
+    public static final int MAX_SLOTS = 30;
+
+    // ---- what a mob is seen to DO ------------------------------------------------------------
+    //
+    // 🔴 The formula only reads what a mob DECLARES. Bailey found the hole in a modpack: Medusa
+    // cost 4 slots because her health and damage are unremarkable, while she turns everything to
+    // stone. No equation reads that out of another mod's code — but she demonstrates it on the
+    // player, so it can be watched. -> ShadowObservations
+
+    // ⚠️ SLOTS, NOT MULTIPLIERS. The cost curve is logarithmic — a doubling of threat buys one
+    // slot — so multiplying threat by 2.6 for a petrify-everything mob moved Medusa from 4 slots
+    // to 5, which answers nothing. Added slots have teeth, and read plainly.
+
+    /** Per distinct effect that takes the fight away from you: blindness, slowness, weakness. */
+    public static final int OBSERVED_DISABLING_SLOTS = 2;
+
+    /** Per distinct effect that mostly hurts: poison, wither. */
+    public static final int OBSERVED_DAMAGING_SLOTS = 1;
+
+    /**
+     * Per distinct MODDED effect. ⚠️ Deliberately the highest. Mods do not register trivial
+     * status effects, and guessing high is recoverable through shadow_overrides.json while
+     * guessing low is how a four-slot Medusa happens.
+     */
+    public static final int OBSERVED_UNKNOWN_SLOTS = 3;
+
+    /** However much it does, observation may not add more than this to a mob's cost. */
+    public static final int MAX_OBSERVED_SLOTS = 10;
+
+    /**
+     * The mod author's own verdict, read from the mob's experience reward. Vanilla hostiles sit
+     * at 5, so the floor is 5: below that this does nothing at all, which is the intent for the
+     * base game. A modded boss dropping 200 lands near the ceiling.
+     */
+    public static final int XP_FACTOR_FLOOR = 5;
+    public static final double XP_FACTOR_DIVISOR = 60.0;
+    public static final double MAX_XP_FACTOR = 3.0;
 
     /** Tier boundaries, in slots. Runt is everything below SOLDIER. */
     public static final int SOLDIER_MIN_SLOTS = 3;

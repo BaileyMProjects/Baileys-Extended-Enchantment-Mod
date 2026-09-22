@@ -25,7 +25,11 @@ public final class ShadowArmy {
     public static final class Soldier {
         public final UUID id;
         public final String typeId;
-        public final int slots;
+        /**
+         * ⚠️ Not final: observation can re-price a soldier upward after it was raised.
+         * -> ShadowObserver.recost
+         */
+        public int slots;
         public final CompoundTag snapshot;
         public String name;
         public boolean deployed;

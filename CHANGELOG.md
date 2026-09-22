@@ -16,6 +16,33 @@ right-click ability, which were built after 1.1.0 was jarred.
 ⚠️ **Every number in this release is a first guess.** It was designed and built in one night on
 Bailey's authority and has not been played. Expect tuning.
 
+### ⚖️ Changed — the shadow classifier learns
+
+- **Mobs are now priced by what they are seen to do, not only by what they declare.** A mob with
+  unremarkable health and damage but a fight-ending ability was costing almost nothing — in a
+  modpack, a mob that turns everything to stone cost four slots. Every mob you meet is now
+  watched, and the effects it applies raise its price *before* you ever raise it.
+  - A disabling effect (blindness, slowness, weakness) adds **2 slots**, a damaging one **1**,
+    and an **unknown modded effect 3** — mods do not register trivial status effects.
+  - The hardest hit a mob has ever landed is remembered, so a mob that hurts you through its own
+    code rather than its attack stat is priced on what it actually did.
+- **The formula reads more of what mobs declare**: knockback resistance, armour toughness and
+  attack knockback all now count.
+- **A mob's experience reward raises its cost.** Near-meaningless in vanilla, but modded bosses
+  set it deliberately.
+- **Shadows already in your army are re-priced** as more is learned, upward only, and you are
+  told when it happens.
+- The slot ceiling rose from 20 to **30**.
+- `shadow_report.json` now lists what each mob has been observed doing, and is rewritten when the
+  world saves.
+
+### 🐛 Fixed
+
+- **An army could not level up behind a disabling shadow.** Experience was only awarded for the
+  killing blow, so a shadow whose contribution was crowd control earned nothing, because
+  something else always finished the job. Any shadow that damaged a victim in the last ten
+  seconds now earns the kill, and levels from it.
+
 ### ✨ Added — two new enchantments
 
 - **Shortbow** (Ultimate, from Flame). The bow fires the instant you click — no draw, no charge.

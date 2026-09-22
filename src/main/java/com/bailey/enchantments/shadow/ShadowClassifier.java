@@ -11,6 +11,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
@@ -147,9 +148,35 @@ public final class ShadowClassifier {
     // ---- the formula ----------------------------------------------------------------------
 
     public static double threat(double health, double damage, double armor) {
+        return threat(health, damage, armor, 0, 0, 0);
+    }
+
+    /**
+     * The full formula, with the signals a mob declares beyond the first three.
+     *
+     * <p>⚠️ <b>Knockback resistance is the big one.</b> A mob you cannot stagger fights a
+     * completely different fight from one you can shove off a ledge, and the original three-term
+     * formula was blind to it. Toughness and attack knockback are smaller corrections in the
+     * same spirit: measurable things that change how hard a mob is to handle, which health and
+     * damage alone do not capture.
+     *
+     * <p>🔶 None of this catches an ability like petrification. That needs
+     * {@link ShadowObservations}, which watches rather than reads.
+     */
+    public static double threat(double health, double damage, double armor,
+                                double toughness, double knockbackResist, double attackKnockback) {
         double reduction = 0.04 * Math.min(Math.max(armor, 0), 20);
-        double effHealth = health / (1.0 - reduction);
-        return effHealth * (1.0 + Math.max(damage, 0) / ShadowBalance.DAMAGE_WEIGHT);
+        // Toughness blunts heavy hits, which is exactly what a player brings to a boss.
+        reduction += 0.01 * Math.min(Math.max(toughness, 0), 20);
+        double effHealth = health / (1.0 - Math.min(reduction, 0.9));
+
+        double t = effHealth * (1.0 + Math.max(damage, 0) / ShadowBalance.DAMAGE_WEIGHT);
+
+        // 0..1 in vanilla; 1.0 means "cannot be knocked back at all", which doubles the trouble.
+        t *= 1.0 + Math.min(Math.max(knockbackResist, 0), 1.0);
+        // A mob that throws you around controls the fight's spacing.
+        t *= 1.0 + Math.min(Math.max(attackKnockback, 0), 4.0) * 0.1;
+        return t;
     }
 
     public static int slotsFromThreat(double threat) {
@@ -240,7 +267,68 @@ public final class ShadowClassifier {
         double damage = entity.getAttributes().hasAttribute(Attributes.ATTACK_DAMAGE)
                 ? entity.getAttributeValue(Attributes.ATTACK_DAMAGE) : 0;
         double armor = entity.getArmorValue();
-        return slotsFromThreat(threat(health, damage, armor));
+        double toughness = entity.getAttributes().hasAttribute(Attributes.ARMOR_TOUGHNESS)
+                ? entity.getAttributeValue(Attributes.ARMOR_TOUGHNESS) : 0;
+        double kbResist = entity.getAttributes().hasAttribute(Attributes.KNOCKBACK_RESISTANCE)
+                ? entity.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE) : 0;
+        double attackKb = entity.getAttributes().hasAttribute(Attributes.ATTACK_KNOCKBACK)
+                ? entity.getAttributeValue(Attributes.ATTACK_KNOCKBACK) : 0;
+
+        MinecraftServer server = entity.getServer();
+        if (server != null) {
+            ShadowObservations seen = ShadowObservations.get(server);
+
+            // ⚠️ The attack attribute is only a claim. A mob that has been watched hitting for
+            // more than it declares is priced on what it actually did.
+            damage = Math.max(damage, seen.observedDamage(entity.getType()));
+
+            double t = threat(health, damage, armor, toughness, kbResist, attackKb);
+            int slots = slotsFromThreat(t * experienceFactor(entity)) + seen.extraSlots(entity.getType());
+            return Math.max(ShadowBalance.MIN_SLOTS, Math.min(ShadowBalance.MAX_SLOTS, slots));
+        }
+        return slotsFromThreat(threat(health, damage, armor, toughness, kbResist, attackKb));
+    }
+
+    /**
+     * The mod author's own verdict on how big a deal this mob is, as a multiplier that can only
+     * <b>raise</b> a cost.
+     *
+     * <p>⚠️ <b>Near-useless in vanilla and worth having anyway.</b> A Warden gives the same 5
+     * experience as a zombie, so this does nothing for the base game. Modded bosses, by contrast,
+     * almost always set a large reward deliberately — it is the one place a mod author states
+     * "this thing is significant" in a form we can read. Raise-only, so a mob that drops nothing
+     * is never cheapened by it.
+     */
+    private static double experienceFactor(LivingEntity entity) {
+        if (!(entity instanceof Mob mob)) return 1.0;
+        int xp = mob.getExperienceReward();
+        if (xp <= ShadowBalance.XP_FACTOR_FLOOR) return 1.0;
+        return Math.min(ShadowBalance.MAX_XP_FACTOR,
+                1.0 + (xp - ShadowBalance.XP_FACTOR_FLOOR) / ShadowBalance.XP_FACTOR_DIVISOR);
+    }
+
+    /**
+     * The cost of a type by name, used when no instance is to hand — the recosting pass works
+     * from a roster, which stores a type id rather than a body.
+     *
+     * <p>⚠️ Base attributes plus everything observed. It cannot know the per-instance scaling a
+     * live entity would have shown, so this is a floor, and recosting only ever raises.
+     */
+    public static int slotsForType(MinecraftServer server, String typeId) {
+        ResourceLocation id = ResourceLocation.tryParse(typeId);
+        EntityType<?> type = id == null ? null : ForgeRegistries.ENTITY_TYPES.getValue(id);
+        if (type == null) return ShadowBalance.MIN_SLOTS;
+
+        Integer override = override(type);
+        if (override != null) {
+            return Math.max(ShadowBalance.MIN_SLOTS, Math.min(ShadowBalance.MAX_SLOTS, override));
+        }
+
+        Classification base = classify(type);
+        ShadowObservations seen = ShadowObservations.get(server);
+        double damage = Math.max(base.damage(), seen.observedDamage(type));
+        int slots = slotsFromThreat(threat(base.health(), damage, base.armor())) + seen.extraSlots(type);
+        return Math.max(ShadowBalance.MIN_SLOTS, Math.min(ShadowBalance.MAX_SLOTS, slots));
     }
 
     /** Can a shadow of this specific entity be made at all? Role support plus the tag. */

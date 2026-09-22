@@ -42,6 +42,11 @@ public final class ShadowArmies extends SavedData {
         return armies.values();
     }
 
+    /** Every roster with its army id, for the recosting pass. */
+    public java.util.Map<UUID, ShadowArmy> byId() {
+        return armies;
+    }
+
     /** Every army this player currently has out in the world, by id. */
     public List<UUID> deployedBy(UUID player) {
         List<UUID> out = new ArrayList<>();

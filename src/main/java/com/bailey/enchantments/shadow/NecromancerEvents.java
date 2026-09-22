@@ -78,9 +78,24 @@ public final class NecromancerEvents {
             return;
         }
 
-        if (!ShadowData.isShadow(killer)) return;
         if (ShadowData.isShadow(victim)) return;              // no farming your own army
-        UUID ownerId = ShadowData.ownerId(killer);
+
+        // ✅ An ASSIST counts, not only the killing blow. Bailey, 2026-09-22: a raised Medusa
+        // "turns everything to stone, which not only makes u unable to level up" — a shadow
+        // whose contribution is disabling things earned nothing, because something else always
+        // finished them. Now any shadow that damaged the victim recently pays its master.
+        Entity earner = killer;
+        UUID ownerId;
+        if (ShadowData.isShadow(killer)) {
+            ownerId = ShadowData.ownerId(killer);
+        } else {
+            ShadowAssists.Assist assist = ShadowAssists.claim(victim);
+            if (assist == null) return;
+            ownerId = assist.owner();
+            // The shadow that did the work levels too, even though something else finished it.
+            Entity shadow = ShadowArmyManager.findEntity(server, assist.shadow());
+            if (shadow != null) earner = shadow;
+        }
         if (ownerId == null) return;
         ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
         if (owner == null) return;
@@ -99,7 +114,7 @@ public final class NecromancerEvents {
         int gained = necro.award(ownerId, xp);
 
         // The soldier's own ladder climbs from the same kill.
-        SoldierLevels.award(server, killer, xp);
+        SoldierLevels.award(server, earner, xp);
 
         if (gained > 0) {
             int now = necro.levelOf(ownerId);
