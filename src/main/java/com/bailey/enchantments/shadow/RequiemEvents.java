@@ -67,6 +67,7 @@ public final class RequiemEvents {
 
         // A kill worth remembering.
         if (!(event.getSource().getEntity() instanceof ServerPlayer killer)) return;
+        if (killer == victim) return;                             // no raising yourself
         if (!hasRequiem(killer.getMainHandItem())) return;
         if (ShadowData.isShadow(victim)) return;
         if (!(victim instanceof Mob) && !(victim instanceof ServerPlayer)) return;

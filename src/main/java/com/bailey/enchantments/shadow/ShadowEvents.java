@@ -19,6 +19,11 @@ import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
 import net.minecraftforge.event.entity.living.LivingConversionEvent;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.event.entity.living.LivingExperienceDropEvent;
+import net.minecraftforge.event.entity.living.MobEffectEvent;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.monster.warden.Warden;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraft.server.level.ServerPlayer;
@@ -143,6 +148,24 @@ public final class ShadowEvents {
     @SubscribeEvent
     public static void onGriefing(EntityMobGriefingEvent event) {
         if (ShadowData.isShadow(event.getEntity())) event.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);
+    }
+
+    // ---- no darkness from your own Warden ---------------------------------------------------
+
+    /**
+     * A Warden blinds every player within 20 blocks every six seconds, straight from
+     * {@code customServerAiStep} -- not a behaviour, so the brain wipe does not stop it. A shadow
+     * Warden would blind its own owner. The effect is refused while a shadow Warden is the one in
+     * range; a real Warden further away still gets through.
+     */
+    @SubscribeEvent
+    public static void onEffect(MobEffectEvent.Applicable event) {
+        if (event.getEffectInstance().getEffect() != MobEffects.DARKNESS) return;
+        if (!(event.getEntity() instanceof Player player) || player.level().isClientSide()) return;
+        AABB near = player.getBoundingBox().inflate(21.0);
+        boolean shadowWarden = !player.level().getEntitiesOfClass(Warden.class, near, ShadowData::isShadow).isEmpty();
+        boolean realWarden = !player.level().getEntitiesOfClass(Warden.class, near, w -> !ShadowData.isShadow(w)).isEmpty();
+        if (shadowWarden && !realWarden) event.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);
     }
 
     // ---- no conversion -----------------------------------------------------------------------

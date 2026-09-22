@@ -51,7 +51,8 @@ public final class ShadowSpawner {
             "StrayConversionTime", "ConversionTime", "ConversionPlayer", "IsImmuneToZombification",
             "TimeInOverworld", "Tags", "ForgeData", "ForgeCaps", "NoAI",
             "PersistenceRequired", "CanPickUpLoot", "LastDeathLocation", "Invulnerable",
-            "Silent", "Glowing", "CustomNameVisible");
+            "Silent", "Glowing", "CustomNameVisible",
+            "LifeTicks", "BoundX", "BoundY", "BoundZ");   // a summoned vex starves on a timer; a shadow vex must not
 
     /** A storable description of this creature: its type id plus everything durable about it. */
     public static CompoundTag snapshot(LivingEntity entity) {
