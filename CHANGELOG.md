@@ -7,14 +7,14 @@ something shipped broken, it gets written down here.
 
 ---
 
-## 1.2.0 — UNRELEASED, built overnight 2026-09-22, never launched
+## 1.2.0 — shipped to the server 2026-09-22
 
 The Shadow Monarch update. Two new enchantments on the Smite line, and everything that comes
 with raising the dead. Also carries the evasion armour line (Mirage → Dissonance) and Resonance's
 right-click ability, which were built after 1.1.0 was jarred.
 
-⚠️ **Every number in this release is a first guess.** It was designed and built in one night on
-Bailey's authority and has not been played. Expect tuning.
+⚠️ **Most numbers in this release are first guesses.** Single-player and modpack testing passed;
+this is the first build to face more than one player at a time, so expect tuning.
 
 ### ⚖️ Changed — the shadow classifier learns
 
