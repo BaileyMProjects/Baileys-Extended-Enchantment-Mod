@@ -136,6 +136,15 @@ public final class Necromancer extends SavedData {
         return of(player).killsSinceOwn >= ShadowBalance.SHADOW_KILLS_PER_OWN_KILL;
     }
 
+    /** Set a level outright. Operator command only — see {@code command/ModCommands}. */
+    public void setLevel(UUID player, int level) {
+        Record r = of(player);
+        r.level = Math.max(1, Math.min(ShadowBalance.MAX_NECROMANCER_LEVEL, level));
+        r.xp = 0;
+        r.killsSinceOwn = 0;
+        setDirty();
+    }
+
     public void markDirty() {
         setDirty();
     }

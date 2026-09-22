@@ -161,6 +161,7 @@
   "baileys_enchantments.necro.level": "Your dominion deepens. Level %s — %s slots.",
   "baileys_enchantments.necro.soldier_level": "%s reaches level %s (intellect %s).",
   "baileys_enchantments.necro.gate": "Your shadows learn nothing more until you kill something yourself.",
+  "baileys_enchantments.command.necromancer": "%s is now a level %s necromancer (%s slots).",
 
   "key.categories.baileys_enchantments": "Bailey's Extended Enchantments",
   "key.baileys_enchantments.shadow_army": "Open Shadow Army",
