@@ -139,6 +139,24 @@ public final class DeepDarkBalance {
      */
     public static final int DISSONANCE_SWAP_LOCKOUT = 20;
     // ---- Placeholders, NOT yet designed --------------------------------------------
+
+    /**
+     * Half-width of the flash-step zone, in blocks. 100x100 total, Bailey 2026-09-22.
+     *
+     * ⚠️ THIS EXISTS BECAUSE THE ABILITY WAS A TRAVEL TOOL. Bailey: "I found out in less than a
+     * minute i can travel over 1000 blocks using the teleport so this makes it more combat
+     * useful." The zone is anchored where the mode was entered and NEVER follows the player --
+     * a zone that re-centred would restore exactly the behaviour it exists to stop.
+     */
+    public static final int DISSONANCE_ZONE_HALF = 50;
+
+    /**
+     * Penalty for leaving the mode, whether by stepping outside the zone or by releasing sneak.
+     *
+     * ⚠️ Deliberately far longer than the 1s swap lockout. The swap cooldown shapes combat; this
+     * one is what stops the mode being re-entered to leapfrog a new zone across the world.
+     */
+    public static final int DISSONANCE_EXIT_COOLDOWN = 600;
     // ⚠️ Shatter and Resonance have agreed *identities* but no agreed numbers — the plan
     // says only "large bonus vs deep dark targets" and "a sonic pulse damaging nearby
     // enemies". These exist so Phases 3 and 7 have a home to tune in, and so nobody

@@ -34,6 +34,12 @@ public final class ModNetwork {
                 SecretRevealPayload::encode,
                 SecretRevealPayload::decode,
                 SecretRevealPayload::handle);
+
+        CHANNEL.registerMessage(id++,
+                DissonanceModePayload.class,
+                DissonanceModePayload::encode,
+                DissonanceModePayload::decode,
+                DissonanceModePayload::handle);
     }
 
     /** Server to one client. Used for the Secret-name reveal flag. */

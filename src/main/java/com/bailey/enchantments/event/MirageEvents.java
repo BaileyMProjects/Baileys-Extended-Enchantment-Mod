@@ -6,6 +6,8 @@ import java.util.UUID;
 
 import com.bailey.enchantments.BaileysEnchantments;
 import com.bailey.enchantments.enchantment.ModEnchantments;
+import com.bailey.enchantments.network.DissonanceModePayload;
+import com.bailey.enchantments.network.ModNetwork;
 import com.bailey.enchantments.util.DeepDark;
 import com.bailey.enchantments.util.DeepDarkBalance;
 
@@ -46,10 +48,19 @@ import net.minecraftforge.fml.common.Mod;
  *       <b>+50% damage taken</b>, extended block reach, and a spammable <b>flash step</b>.
  * </ul>
  *
- * <h2>⚠️ "Corruption spreads" — the mode needs ONE Dissonance piece, not four</h2>
- * A full corrupted set plus <b>any</b> Dissonance piece unlocks the mode. Requiring all four to
- * be won separately would have cost ~80 Wardens against ~15 — and spreading through adjacent
- * corrupted material is what sculk does anyway, so the discount explains itself.
+ * <h2>⚠️ The mode needs ALL FOUR pieces, and it is HELD BY SNEAKING</h2>
+ * "Corruption spreads" was built and scratched the same day. Four separate wins it is.
+ *
+ * <p>The mode is entered with sneak + right-click and <b>kept only while sneaking</b>. Release
+ * sneak, or step outside the zone, and it ends with a 30-second lockout. Bailey, 2026-09-22:
+ * <i>"If the player unshifts it also adds a 30 second timer."</i>
+ *
+ * <h2>🔴 The flash step is fenced, because it was a travel tool</h2>
+ * <i>"I found out in less than a minute i can travel over 1000 blocks using the teleport so this
+ * makes it more combat useful."</i> The zone is a 100x100 square <b>anchored where the mode was
+ * entered</b>. It never re-centres -- a following zone would restore exactly the behaviour it
+ * exists to prevent. Swapping weapons keeps the mode and the zone, and costs only the 1s
+ * teleport lockout.
  *
  * <h2>⚠️ Why everything scales per piece</h2>
  * A flat per-piece evade chance rolled four times converges on immunity. Every passive here is
@@ -69,6 +80,9 @@ public final class MirageEvents {
     /** Game time each player may next toggle, and next teleport. */
     private static final Map<UUID, Long> TOGGLE_READY = new HashMap<>();
     private static final Map<UUID, Long> TELEPORT_READY = new HashMap<>();
+
+    /** Where each active mode was anchored. ⚠️ Set once on entry and never updated. */
+    private static final Map<UUID, BlockPos> ZONE_ANCHOR = new HashMap<>();
 
     /** Last seen main-hand item, so a swap can start the teleport lockout. */
     private static final Map<UUID, Item> LAST_HELD = new HashMap<>();
@@ -95,24 +109,31 @@ public final class MirageEvents {
         return count;
     }
 
-    private static boolean hasDissonancePiece(LivingEntity entity) {
+    private static int dissonancePieces(LivingEntity entity) {
+        int count = 0;
         for (EquipmentSlot slot : new EquipmentSlot[]{
                 EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
             if (EnchantmentHelper.getItemEnchantmentLevel(
-                    ModEnchantments.DISSONANCE.get(), entity.getItemBySlot(slot)) > 0) return true;
+                    ModEnchantments.DISSONANCE.get(), entity.getItemBySlot(slot)) > 0) count++;
         }
-        return false;
+        return count;
     }
 
     /**
      * Can this player use the Dissonance mode at all?
      *
-     * ⚠️ Both halves are required. Without a full corrupted set the Secret behaves exactly as
-     * Mirage — Bailey: "until then it just does what the ultimate does". That is what makes a
-     * single Secret piece never a downgrade.
+     * ⚠️ ALL FOUR PIECES MUST CARRY DISSONANCE. "Corruption spreads" -- one winning piece
+     * unlocking the whole set -- was built on 2026-09-22 and Bailey scratched it the same day:
+     * "it didnt spread on piece to piece but I honestly think thats fine and instead just keep
+     * it to needing to get a full set piece by piece."
+     *
+     * ⚠️ That restores the full cost: four separate wins, roughly 8 Ultimates and ~80 Wardens.
+     * He has seen that number and chose it. Do not quietly discount it again.
+     *
+     * Below four pieces the Secret behaves exactly as Mirage, so no progress is ever wasted.
      */
     private static boolean canUseMode(Player player) {
-        return hasDissonancePiece(player) && DeepDark.hasFullCorruptedSet(player);
+        return dissonancePieces(player) == 4;
     }
 
     private static boolean modeOn(Player player) {
@@ -146,11 +167,61 @@ public final class MirageEvents {
                 modeOn(player) ? DeepDarkBalance.DISSONANCE_REACH_BONUS : 0,
                 AttributeModifier.Operation.ADDITION);
 
-        // Losing the set drops the mode, so it can never linger on a player who took the
-        // armour off.
-        if (!canUseMode(player)) MODE_ON.remove(player.getUUID());
-
+        enforceMode(player);
         trackHandSwap(player);
+    }
+
+    /**
+     * The three ways the mode ends, checked every tick.
+     *
+     * ⚠️ Two of them carry a 30-second lockout, and that lockout is the real fence. A zone is
+     * only a fence if leaving it is expensive; otherwise a player steps out, re-enters, and has
+     * a fresh zone 100 blocks further on — which is exactly the 1000-blocks-a-minute behaviour
+     * this whole mechanism exists to stop.
+     */
+    private static void enforceMode(Player player) {
+        if (!(player instanceof ServerPlayer serverPlayer)) return;
+        if (!MODE_ON.getOrDefault(player.getUUID(), false)) return;
+
+        // Losing the set carries NO penalty -- the player did not choose it by moving, and
+        // armour can break mid-fight.
+        if (!canUseMode(player)) {
+            endMode(serverPlayer, false);
+            return;
+        }
+
+        if (!player.isShiftKeyDown()) {
+            endMode(serverPlayer, true);
+            return;
+        }
+
+        BlockPos anchor = ZONE_ANCHOR.get(player.getUUID());
+        if (anchor != null && outsideZone(player, anchor)) {
+            endMode(serverPlayer, true);
+        }
+    }
+
+
+    /** Zone test against an arbitrary point, used for teleport targets as well as the player. */
+    private static boolean outsideZone(BlockPos anchor, BlockPos point) {
+        int half = DeepDarkBalance.DISSONANCE_ZONE_HALF;
+        return Math.abs(point.getX() - anchor.getX()) > half
+                || Math.abs(point.getZ() - anchor.getZ()) > half;
+    }
+
+    /** A flat refusal the player can see and hear, so a blocked flash is never mistaken for lag. */
+    private static void denied(ServerPlayer player, BlockPos target) {
+        ServerLevel level = player.serverLevel();
+        level.playSound(null, player.blockPosition(), SoundEvents.SCULK_CLICKING_STOP,
+                SoundSource.PLAYERS, 0.6F, 1.9F);
+        level.sendParticles(ParticleTypes.SMOKE,
+                target.getX() + 0.5, target.getY() + 0.5, target.getZ() + 0.5,
+                8, 0.2, 0.2, 0.2, 0.01);
+    }
+    private static boolean outsideZone(Player player, BlockPos anchor) {
+        int half = DeepDarkBalance.DISSONANCE_ZONE_HALF;
+        return Math.abs(player.getX() - anchor.getX()) > half
+                || Math.abs(player.getZ() - anchor.getZ()) > half;
     }
 
     private static void applyModifier(Player player, net.minecraft.world.entity.ai.attributes.Attribute attribute,
@@ -256,32 +327,75 @@ public final class MirageEvents {
 
         long now = player.level().getGameTime();
 
-        if (player.isShiftKeyDown()) {
-            if (now < TOGGLE_READY.getOrDefault(player.getUUID(), 0L)) return;
-            TOGGLE_READY.put(player.getUUID(), now + DeepDarkBalance.DISSONANCE_TOGGLE_COOLDOWN);
-            toggle(player);
+        // ⚠️ THE MODE IS HELD BY SNEAKING, so a player already in it is ALSO shifted. The branch
+        // is therefore on whether the mode is running, NOT on whether shift is down -- checking
+        // shift first would make every teleport re-enter the mode instead.
+        if (modeOn(player)) {
+            if (now < TELEPORT_READY.getOrDefault(player.getUUID(), 0L)) return;
+
+            BlockPos anchor = ZONE_ANCHOR.get(player.getUUID());
+            BlockPos target = event.getPos().above();
+            if (anchor != null && outsideZone(anchor, target)) {
+                // Refused, not punished. Clicking the wall of your own zone is a misjudged aim,
+                // not an escape attempt -- the 30s penalty is for walking out of it.
+                denied(player, target);
+                event.setCanceled(true);
+                return;
+            }
+
+            flashStep(player, event.getPos());
             event.setCanceled(true);
             return;
         }
 
-        if (!modeOn(player)) return;
-        if (now < TELEPORT_READY.getOrDefault(player.getUUID(), 0L)) return;
+        if (!player.isShiftKeyDown()) return;
+        if (now < TOGGLE_READY.getOrDefault(player.getUUID(), 0L)) return;
 
-        flashStep(player, event.getPos());
+        beginMode(player);
         event.setCanceled(true);
     }
 
-    private static void toggle(ServerPlayer player) {
-        boolean on = !MODE_ON.getOrDefault(player.getUUID(), false);
-        MODE_ON.put(player.getUUID(), on);
+    /** Enter the mode, anchoring the zone where the player is standing. */
+    private static void beginMode(ServerPlayer player) {
+        BlockPos anchor = player.blockPosition();
+        MODE_ON.put(player.getUUID(), true);
+        ZONE_ANCHOR.put(player.getUUID(), anchor);
 
         ServerLevel level = player.serverLevel();
-        level.playSound(null, player.blockPosition(),
-                on ? SoundEvents.SCULK_SHRIEKER_SHRIEK : SoundEvents.SCULK_CLICKING_STOP,
-                SoundSource.PLAYERS, 0.8F, on ? 1.6F : 0.9F);
-        level.sendParticles(on ? ParticleTypes.SCULK_SOUL : ParticleTypes.SMOKE,
+        level.playSound(null, player.blockPosition(), SoundEvents.SCULK_SHRIEKER_SHRIEK,
+                SoundSource.PLAYERS, 0.8F, 1.6F);
+        level.sendParticles(ParticleTypes.SCULK_SOUL,
                 player.getX(), player.getY() + 1.0, player.getZ(), 24, 0.4, 0.6, 0.4, 0.03);
+
+        ModNetwork.sendToPlayer(
+                new DissonanceModePayload(true, anchor.getX(), anchor.getZ()), player);
     }
+
+    /**
+     * Leave the mode.
+     *
+     * @param penalise true when the player chose to leave — released sneak, or walked out of
+     *                 the zone. False when the armour did it for them, which must not be
+     *                 punished.
+     */
+    private static void endMode(ServerPlayer player, boolean penalise) {
+        MODE_ON.remove(player.getUUID());
+        ZONE_ANCHOR.remove(player.getUUID());
+
+        if (penalise) {
+            TOGGLE_READY.put(player.getUUID(),
+                    player.level().getGameTime() + DeepDarkBalance.DISSONANCE_EXIT_COOLDOWN);
+        }
+
+        ServerLevel level = player.serverLevel();
+        level.playSound(null, player.blockPosition(), SoundEvents.SCULK_CLICKING_STOP,
+                SoundSource.PLAYERS, 0.8F, 0.9F);
+        level.sendParticles(ParticleTypes.SMOKE,
+                player.getX(), player.getY() + 1.0, player.getZ(), 18, 0.4, 0.6, 0.4, 0.02);
+
+        ModNetwork.sendToPlayer(new DissonanceModePayload(false, 0, 0), player);
+    }
+
 
     /**
      * The flash step: appear on top of the block that was clicked.
