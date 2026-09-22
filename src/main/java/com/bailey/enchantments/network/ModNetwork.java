@@ -2,6 +2,9 @@ package com.bailey.enchantments.network;
 
 import com.bailey.enchantments.BaileysEnchantments;
 import com.bailey.enchantments.menu.AncientAnvilMenu;
+import com.bailey.enchantments.shadow.AriseRitual;
+import com.bailey.enchantments.shadow.ShadowClassifier;
+import com.bailey.enchantments.shadow.ShadowRemnant;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -40,6 +43,25 @@ public final class ModNetwork {
                 DissonanceModePayload::encode,
                 DissonanceModePayload::decode,
                 DissonanceModePayload::handle);
+
+        CHANNEL.registerMessage(id++,
+                AriseCutscenePayload.class,
+                AriseCutscenePayload::encode,
+                AriseCutscenePayload::decode,
+                AriseCutscenePayload::handle);
+
+        // The rite tells its one viewer when to start and how it went.
+        AriseRitual.setCutsceneSender(new AriseRitual.CutsceneSender() {
+            @Override
+            public void begin(ServerPlayer player, ShadowRemnant remnant, ShadowClassifier.Tier tier, int ticks) {
+                sendToPlayer(AriseCutscenePayload.begin(remnant.getId(), tier.ordinal(), ticks), player);
+            }
+
+            @Override
+            public void end(ServerPlayer player, boolean success) {
+                sendToPlayer(AriseCutscenePayload.end(success), player);
+            }
+        });
     }
 
     /** Server to one client. Used for the Secret-name reveal flag. */
