@@ -68,6 +68,11 @@ public class ArmyRosterPayload {
             buf.writeBoolean(r.deployed);
             buf.writeFloat(r.health);
             buf.writeFloat(r.maxHealth);
+            buf.writeVarInt(r.level);
+            buf.writeVarInt(r.xp);
+            buf.writeVarInt(r.xpToNext == Integer.MAX_VALUE ? 0 : r.xpToNext);
+            buf.writeByte(r.intelligence);
+            buf.writeBoolean(r.ready);
         }
     }
 
