@@ -50,12 +50,21 @@ import net.minecraftforge.fml.common.Mod;
  *       <b>+50% damage taken</b>, extended block reach, and a spammable <b>flash step</b>.
  * </ul>
  *
- * <h2>⚠️ The mode needs ALL FOUR pieces, and it is HELD BY SNEAKING</h2>
+ * <h2>⚠️ The mode needs ALL FOUR pieces, and it is a TOGGLE</h2>
  * "Corruption spreads" was built and scratched the same day. Four separate wins it is.
  *
- * <p>The mode is entered with sneak + right-click and <b>kept only while sneaking</b>. Release
- * sneak, or step outside the zone, and it ends with a 30-second lockout. Bailey, 2026-09-22:
- * <i>"If the player unshifts it also adds a 30 second timer."</i>
+ * <p><b>Sneak + right-click switches the mode on; sneak + right-click switches it off.</b> In
+ * between you need hold nothing — walk, fight and flash freely. Bailey, 2026-09-22, after
+ * playing it: <i>"make the dissonance so you just shift to toggle it on and off but you dont
+ * have to stay shifted to use it."</i>
+ *
+ * <p>🔴 <b>It used to be HELD by sneaking, and that was unplayable.</b> Worth keeping written
+ * down: the mode was entered with a sneak-CLICK, and a human releases shift a tick later, which
+ * read as leaving voluntarily and charged the 30-second penalty. Switching it on switched it
+ * off, silently, every time. Do not reintroduce a hold-to-keep state entered by a click.
+ *
+ * <p>The 30-second lockout survives, for the two ways of leaving that are still choices:
+ * switching it off yourself, and walking out of the zone.
  *
  * <h2>🔴 The flash step is fenced, because it was a travel tool</h2>
  * <i>"I found out in less than a minute i can travel over 1000 blocks using the teleport so this
@@ -90,12 +99,12 @@ public final class MirageEvents {
     private static final Map<UUID, Long> MODE_SINCE = new HashMap<>();
 
     /**
-     * How long after entering the mode a release of sneak is forgiven.
+     * The shortest the mode can be held before a sneak-click may switch it off.
      *
-     * ⚠️ One second. Long enough to cover the human gap between clicking and letting go of
-     * shift, short enough that it cannot be used to dodge the exit penalty deliberately.
+     * ⚠️ Half a second, so the shift still held from the click that turned it ON cannot turn
+     * it straight back off. The toggle is driven by a click, and a click outlasts itself.
      */
-    private static final long ENTRY_GRACE = 20L;
+    private static final long MIN_HOLD = 10L;
 
     /** Last seen main-hand item, so a swap can start the teleport lockout. */
     private static final Map<UUID, Item> LAST_HELD = new HashMap<>();
@@ -203,24 +212,17 @@ public final class MirageEvents {
             return;
         }
 
-        if (!player.isShiftKeyDown()) {
-            // 🐛 THE GRACE WINDOW, AND WHY IT HAS TO EXIST. Found in play 2026-09-22: Bailey
-            // had the full set and an empty hand and reported the ability "just was not
-            // working". It was working — for about three ticks.
-            //
-            // The mode is HELD by sneaking, but it is ENTERED with a sneak-CLICK, and a human
-            // releases shift the instant the click lands. The tick below then saw "not
-            // sneaking", ended the mode, and charged the 30-second penalty for leaving
-            // voluntarily — so the act of switching it on punished you, and every attempt for
-            // the next half minute failed in silence.
-            //
-            // Releasing within the grace window is a mis-click, not a decision: the mode ends
-            // with NO penalty. Past it, Bailey's rule stands — "If the player unshifts it also
-            // adds a 30 second timer."
-            long held = player.level().getGameTime() - MODE_SINCE.getOrDefault(player.getUUID(), 0L);
-            endMode(serverPlayer, held >= ENTRY_GRACE);
-            return;
-        }
+        // ✅ SNEAK NO LONGER HOLDS THE MODE. Bailey, 2026-09-22, after playing it: "make the
+        // dissonance so you just shift to toggle it on and off but you dont have to stay
+        // shifted to use it."
+        //
+        // 🔴 The old "held by sneaking" rule was unplayable for a reason worth keeping written
+        // down: the mode was ENTERED with a sneak-CLICK, and a human releases shift a tick
+        // later — which read as leaving voluntarily and charged the 30-second penalty. Switching
+        // it on switched it off. A grace window patched that; making it a toggle removes the
+        // whole class of problem instead.
+        //
+        // What still ends it: walking out of the zone, and losing the set. Both above.
 
         BlockPos anchor = ZONE_ANCHOR.get(player.getUUID());
         if (anchor != null && outsideZone(player, anchor)) {
@@ -335,7 +337,11 @@ public final class MirageEvents {
     // ---- the mode, and the flash step ------------------------------------------------
 
     /**
-     * Sneak + right-click a block toggles the mode. A plain right-click flash-steps.
+     * Sneak + right-click a block TOGGLES the mode, on or off. A plain right-click flash-steps.
+     *
+     * <p>✅ Bailey, 2026-09-22, after playing it: <i>"make the dissonance so you just shift to
+     * toggle it on and off but you dont have to stay shifted to use it."</i> Sneak is now the
+     * switch, not the grip.
      *
      * <p>⚠️ Both require an <b>empty main hand</b>, and both are driven from
      * {@code RightClickBlock} because that is the only one of these events that fires on the
@@ -366,10 +372,20 @@ public final class MirageEvents {
 
         long now = player.level().getGameTime();
 
-        // ⚠️ THE MODE IS HELD BY SNEAKING, so a player already in it is ALSO shifted. The branch
-        // is therefore on whether the mode is running, NOT on whether shift is down -- checking
-        // shift first would make every teleport re-enter the mode instead.
+        // ✅ A TOGGLE. Sneak-click switches it on, sneak-click switches it off, and in between
+        // you are free to stand up, walk, fight and flash without holding anything down.
         if (modeOn(player)) {
+            if (player.isShiftKeyDown()) {
+                // ⚠️ Not within MIN_HOLD of entering. A shift still held from the click that
+                // turned it on would otherwise turn it straight back off — the same shape of
+                // bug as the old "held by sneaking" design, and worth guarding explicitly.
+                if (now - MODE_SINCE.getOrDefault(player.getUUID(), 0L) >= MIN_HOLD) {
+                    endMode(player, true);
+                }
+                event.setCanceled(true);
+                return;
+            }
+
             if (now < TELEPORT_READY.getOrDefault(player.getUUID(), 0L)) return;
 
             BlockPos anchor = ZONE_ANCHOR.get(player.getUUID());
@@ -448,6 +464,9 @@ public final class MirageEvents {
                 SoundSource.PLAYERS, 0.8F, 0.9F);
         level.sendParticles(ParticleTypes.SMOKE,
                 player.getX(), player.getY() + 1.0, player.getZ(), 18, 0.4, 0.6, 0.4, 0.02);
+
+        player.displayClientMessage(Component.translatable("baileys_enchantments.dissonance.off")
+                .withStyle(ChatFormatting.GRAY), true);
 
         ModNetwork.sendToPlayer(new DissonanceModePayload(false, 0, 0), player);
     }
