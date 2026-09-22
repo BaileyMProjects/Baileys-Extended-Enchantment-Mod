@@ -4,8 +4,6 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
-import com.bailey.enchantments.enchantment.ModEnchantments;
-import com.bailey.enchantments.util.Ultimates;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
@@ -121,7 +119,7 @@ public class ShadowRemnant extends Entity {
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
         if (!player.isShiftKeyDown()) return InteractionResult.PASS;
-        if (!Ultimates.hasUltimate(player.getItemInHand(hand), ModEnchantments.REQUIEM.get())) return InteractionResult.PASS;
+        if (!RequiemBlade.isRequiem(player.getItemInHand(hand))) return InteractionResult.PASS;
         if (level().isClientSide) return InteractionResult.SUCCESS;
         if (!(player instanceof ServerPlayer server)) return InteractionResult.PASS;
 

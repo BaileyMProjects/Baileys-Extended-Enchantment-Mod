@@ -1,6 +1,8 @@
 package com.bailey.enchantments.shadow;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -26,12 +28,22 @@ public final class ShadowArmies extends SavedData {
         return server.overworld().getDataStorage().computeIfAbsent(ShadowArmies::load, ShadowArmies::new, NAME);
     }
 
-    public ShadowArmy armyOf(UUID owner) {
-        return armies.computeIfAbsent(owner, id -> new ShadowArmy());
+    /** The roster under this army id -- a blade's id, which for a migrated army is the player's UUID. */
+    public ShadowArmy armyOf(UUID armyId) {
+        return armies.computeIfAbsent(armyId, id -> new ShadowArmy());
     }
 
-    public boolean has(UUID owner) {
-        return armies.containsKey(owner);
+    public boolean has(UUID armyId) {
+        return armies.containsKey(armyId);
+    }
+
+    /** Every army this player currently has out in the world, by id. */
+    public List<UUID> deployedBy(UUID player) {
+        List<UUID> out = new ArrayList<>();
+        for (Map.Entry<UUID, ShadowArmy> e : armies.entrySet()) {
+            if (player.equals(e.getValue().holder()) && e.getValue().anyDeployed()) out.add(e.getKey());
+        }
+        return out;
     }
 
     /** Call after any mutation. Cheap; the world save does the real work later. */

@@ -67,6 +67,14 @@ public final class ShadowArmy {
     private final List<Soldier> soldiers = new ArrayList<>();
     private ShadowStance stance = ShadowStance.GUARD;
 
+    /** Who has this army deployed right now: the blade's holder. Null while everything is stored. */
+    @Nullable private UUID holder;
+
+    @Nullable
+    public UUID holder() { return holder; }
+
+    public void setHolder(@Nullable UUID holder) { this.holder = holder; }
+
     public List<Soldier> soldiers() {
         return Collections.unmodifiableList(soldiers);
     }
@@ -114,6 +122,7 @@ public final class ShadowArmy {
         for (Soldier s : soldiers) list.add(s.save());
         tag.put("Soldiers", list);
         tag.putString("Stance", stance.name());
+        if (holder != null) tag.putUUID("Holder", holder);
         return tag;
     }
 
@@ -123,6 +132,7 @@ public final class ShadowArmy {
             army.soldiers.add(Soldier.load((CompoundTag) t));
         }
         army.stance = ShadowStance.byName(tag.getString("Stance"));
+        army.holder = tag.hasUUID("Holder") ? tag.getUUID("Holder") : null;
         return army;
     }
 }

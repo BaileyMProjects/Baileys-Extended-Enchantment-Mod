@@ -24,6 +24,10 @@ import net.minecraft.world.phys.Vec3;
  * Everything that changes an army: arise, deploy, recall, release, death. The one place the
  * roster and the world are kept in step.
  *
+ * <p>Armies are addressed by <b>army id</b> — the id in a Requiem blade's NBT
+ * ({@link RequiemBlade}). The holder is whoever deployed it; the shadows answer to them until
+ * the blade leaves their inventory.
+ *
  * <p>⚠️ Every path that touches a soldier's {@code deployed} flag also touches the world, and
  * vice versa. A soldier marked deployed with no body, or a body with no roster entry, is a
  * stray — and {@link RequiemEvents#onJoin} exists to sweep exactly those up on load, because
@@ -35,14 +39,13 @@ public final class ShadowArmyManager {
     // ---- arise ----------------------------------------------------------------------------
 
     /**
-     * Bind a snapshot into the roster and put its body in the world at {@code at}. The caller
-     * has already checked the fit. Returns the soldier.
+     * Bind a snapshot into the blade's roster and put its body in the world at {@code at}. The
+     * caller has already checked the fit. Returns the soldier.
      */
-    public static ShadowArmy.Soldier arise(ServerPlayer owner, CompoundTag snapshot, int slots,
+    public static ShadowArmy.Soldier arise(ServerPlayer holder, UUID armyId, CompoundTag snapshot, int slots,
                                            Vec3 at, boolean rise) {
-        MinecraftServer server = owner.server;
-        ShadowArmies armies = ShadowArmies.get(server);
-        ShadowArmy army = armies.armyOf(owner.getUUID());
+        ShadowArmies armies = ShadowArmies.get(holder.server);
+        ShadowArmy army = armies.armyOf(armyId);
 
         String typeId = snapshot.getString("id");
         String name = snapshot.contains("ProfileName") ? snapshot.getString("ProfileName")
@@ -51,53 +54,55 @@ public final class ShadowArmyManager {
         army.add(soldier);
         armies.markDirty();
 
-        deploy(owner, army, soldier, at, rise);
+        deploy(holder, armyId, army, soldier, at, rise);
         return soldier;
     }
 
     // ---- deploy ----------------------------------------------------------------------------
 
-    /** Put one soldier's body in the world. No-op if it is already out and alive. */
-    public static boolean deploy(ServerPlayer owner, ShadowArmy army, ShadowArmy.Soldier soldier,
+    /** Put one soldier's body in the world under this holder. No-op if it is already out and alive. */
+    public static boolean deploy(ServerPlayer holder, UUID armyId, ShadowArmy army, ShadowArmy.Soldier soldier,
                                  @Nullable Vec3 at, boolean rise) {
-        if (soldier.deployed && findEntity(owner.server, soldier.entityId) != null) return false;
+        if (soldier.deployed && findEntity(holder.server, soldier.entityId) != null) return false;
 
-        ServerLevel level = owner.serverLevel();
-        Vec3 pos = at != null ? at : owner.position();
+        ServerLevel level = holder.serverLevel();
+        Vec3 pos = at != null ? at : holder.position();
         Mob mob = ShadowSpawner.materialise(level, soldier.snapshot, pos);
         if (mob == null) return false;
 
-        ShadowData.markArmy(mob, owner.getUUID(), soldier.id, soldier.slots);
+        ShadowData.markArmy(mob, holder.getUUID(), armyId, soldier.id, soldier.slots);
         applyName(mob, soldier);
         ShadowAi.install(mob);
 
         // ⚠️ Roster BEFORE world. RequiemEvents.onJoin sweeps any body whose roster entry does
-        // not already say "deployed, this UUID" -- so if these two lines came after
-        // addFreshEntity, every deploy would be discarded as a stray on arrival.
+        // not already say "deployed, this UUID" -- so if these lines came after addFreshEntity,
+        // every deploy would be discarded as a stray on arrival.
         soldier.deployed = true;
         soldier.entityId = mob.getUUID();
-        ShadowArmies.get(owner.server).markDirty();
+        army.setHolder(holder.getUUID());
+        ShadowStances.set(holder.getUUID(), army.stance());
+        ShadowArmies.get(holder.server).markDirty();
 
         level.addFreshEntity(mob);
-        if (at == null) ShadowMovement.teleportNear(mob, owner);
+        if (at == null) ShadowMovement.teleportNear(mob, holder);
 
         if (rise) ShadowRising.begin(level, mob);
         else ShadowSpawner.puff(level, mob, 10);
         return true;
     }
 
-    public static int deployAll(ServerPlayer owner) {
-        ShadowArmy army = ShadowArmies.get(owner.server).armyOf(owner.getUUID());
+    public static int deployAll(ServerPlayer holder, UUID armyId) {
+        ShadowArmy army = ShadowArmies.get(holder.server).armyOf(armyId);
         int n = 0;
         for (ShadowArmy.Soldier s : new ArrayList<>(army.soldiers())) {
-            if (deploy(owner, army, s, null, false)) n++;
+            if (deploy(holder, armyId, army, s, null, false)) n++;
         }
         return n;
     }
 
     // ---- recall ----------------------------------------------------------------------------
 
-    /** Pull one soldier back into storage, unharmed. Safe if the body is already gone. */
+    /** Pull one soldier back into the blade, unharmed. Safe if the body is already gone. */
     public static void recall(MinecraftServer server, ShadowArmy army, ShadowArmy.Soldier soldier) {
         Entity body = findEntity(server, soldier.entityId);
         if (body != null && body.level() instanceof ServerLevel level) {
@@ -107,26 +112,36 @@ public final class ShadowArmyManager {
         }
         soldier.deployed = false;
         soldier.entityId = null;
+        if (!army.anyDeployed()) army.setHolder(null);
         ShadowArmies.get(server).markDirty();
     }
 
-    public static int recallAll(MinecraftServer server, UUID ownerId) {
+    public static int recallAll(MinecraftServer server, UUID armyId) {
         ShadowArmies armies = ShadowArmies.get(server);
-        if (!armies.has(ownerId)) return 0;
-        ShadowArmy army = armies.armyOf(ownerId);
+        if (!armies.has(armyId)) return 0;
+        ShadowArmy army = armies.armyOf(armyId);
         int n = 0;
         for (ShadowArmy.Soldier s : army.soldiers()) {
             if (s.deployed) { recall(server, army, s); n++; }
         }
+        army.setHolder(null);
+        armies.markDirty();
+        return n;
+    }
+
+    /** Every army this player has out, back into its blade. Death, logout, dimension change. */
+    public static int recallAllHeldBy(MinecraftServer server, UUID player) {
+        int n = 0;
+        for (UUID armyId : ShadowArmies.get(server).deployedBy(player)) n += recallAll(server, armyId);
         return n;
     }
 
     // ---- release and death -----------------------------------------------------------------
 
     /** Remove a soldier from the roster for good, recalling its body first. */
-    public static void release(MinecraftServer server, UUID ownerId, UUID soldierId) {
+    public static void release(MinecraftServer server, UUID armyId, UUID soldierId) {
         ShadowArmies armies = ShadowArmies.get(server);
-        ShadowArmy army = armies.armyOf(ownerId);
+        ShadowArmy army = armies.armyOf(armyId);
         ShadowArmy.Soldier s = army.find(soldierId);
         if (s == null) return;
         recall(server, army, s);
@@ -134,22 +149,24 @@ public final class ShadowArmyManager {
         armies.markDirty();
     }
 
-    /** A deployed shadow died in the field. It is gone from the roster; its owner is told. */
+    /** A deployed shadow died in the field. It is gone from the roster; its holder is told. */
     public static void onShadowDied(LivingEntity shadow) {
         UUID rosterId = ShadowData.rosterId(shadow);
+        UUID armyId = ShadowData.armyId(shadow);
         UUID ownerId = ShadowData.ownerId(shadow);
         MinecraftServer server = shadow.getServer();
-        if (rosterId == null || ownerId == null || server == null) return;
+        if (rosterId == null || armyId == null || server == null) return;
 
         ShadowArmies armies = ShadowArmies.get(server);
-        if (!armies.has(ownerId)) return;
-        ShadowArmy army = armies.armyOf(ownerId);
+        if (!armies.has(armyId)) return;
+        ShadowArmy army = armies.armyOf(armyId);
         ShadowArmy.Soldier s = army.find(rosterId);
         if (s == null) return;
         army.remove(rosterId);
+        if (!army.anyDeployed()) army.setHolder(null);
         armies.markDirty();
 
-        ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
+        ServerPlayer owner = ownerId != null ? server.getPlayerList().getPlayer(ownerId) : null;
         if (owner != null) {
             owner.displayClientMessage(Component.translatable("baileys_enchantments.requiem.fallen", s.name)
                     .withStyle(ChatFormatting.DARK_RED), true);
@@ -176,12 +193,12 @@ public final class ShadowArmyManager {
         }
     }
 
-    /** Every deployed body of this owner that is loaded right now. */
-    public static List<Mob> deployedBodies(MinecraftServer server, UUID ownerId) {
+    /** Unused now that armies are blade-bound; kept for the report and debugging. */
+    public static List<Mob> deployedBodies(MinecraftServer server, UUID armyId) {
         List<Mob> out = new ArrayList<>();
         ShadowArmies armies = ShadowArmies.get(server);
-        if (!armies.has(ownerId)) return out;
-        for (ShadowArmy.Soldier s : armies.armyOf(ownerId).soldiers()) {
+        if (!armies.has(armyId)) return out;
+        for (ShadowArmy.Soldier s : armies.armyOf(armyId).soldiers()) {
             if (s.deployed && findEntity(server, s.entityId) instanceof Mob mob) out.add(mob);
         }
         return out;

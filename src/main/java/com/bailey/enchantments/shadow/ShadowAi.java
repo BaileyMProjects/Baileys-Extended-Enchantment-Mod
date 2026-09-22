@@ -8,6 +8,9 @@ import com.bailey.enchantments.shadow.ai.ShadowWanderGoal;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import javax.annotation.Nullable;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
@@ -43,7 +46,7 @@ public final class ShadowAi {
         mob.goalSelector.removeAllGoals(g -> true);
         mob.targetSelector.removeAllGoals(g -> true);
         mob.getBrain().removeAllBehaviors();
-        mob.setTarget(null);
+        setTarget(mob, null);
 
         int p = 0;
         if (mob instanceof RangedAttackMob) {
@@ -57,6 +60,19 @@ public final class ShadowAi {
         mob.targetSelector.addGoal(0, new ShadowTargetGoal(mob));
 
         body(mob);
+    }
+
+    /**
+     * 🐛 FOUND IN PLAY 2026-09-22: the Warden, piglins and hoglins override {@code getTarget()} to
+     * read their brain's ATTACK_TARGET memory. {@code Mob.setTarget} writes a plain field they
+     * never read, so a shadow Warden "had" a target it could not see and stood there while its
+     * owner died. Set both. {@code Brain.setMemory} silently ignores a type the brain does not
+     * register, so this is safe on every body.
+     */
+    public static void setTarget(Mob mob, @Nullable LivingEntity target) {
+        mob.setTarget(target);
+        if (target != null) mob.getBrain().setMemory(MemoryModuleType.ATTACK_TARGET, target);
+        else mob.getBrain().eraseMemory(MemoryModuleType.ATTACK_TARGET);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

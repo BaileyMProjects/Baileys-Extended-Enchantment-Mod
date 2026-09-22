@@ -112,7 +112,7 @@
   "enchantment.baileys_enchantments.dissonance.desc": "Full set only. Hold sneak to phase: flash step inside a fixed zone, but you take far more damage.",
   "enchantment.baileys_enchantments.resonance.desc": "Sonic pulse on hit, and Execute's perks. Right-click to gather and scatter at 20% health.",
   "enchantment.baileys_enchantments.umbra.desc": "Smite VII against the undead. Kills have a chance to raise a fleeting shadow of the victim that fights for you.",
-  "enchantment.baileys_enchantments.requiem.desc": "Smite VII, and Arise. Sneak-click a fallen foe's remnant to bind its shadow; right-click to deploy your army, sneak-click the air to recall it.",
+  "enchantment.baileys_enchantments.requiem.desc": "Smite VII, and Arise. The army lives in this blade. Sneak-click a fallen foe's remnant to bind its shadow; right-click to deploy, sneak-click the air to recall. Lose the blade, lose command.",
 
   "entity.baileys_enchantments.shadow_remnant": "Shadow Remnant",
   "entity.baileys_enchantments.shadow_player": "Shadow",
@@ -128,7 +128,8 @@
   "baileys_enchantments.requiem.deployed": "%s shadows answer.",
   "baileys_enchantments.requiem.recalled": "%s shadows return to you.",
   "baileys_enchantments.requiem.fallen": "%s has fallen.",
-  "baileys_enchantments.requiem.no_weapon": "You hold no Requiem, and have no shadows.",
+  "baileys_enchantments.requiem.no_weapon": "Hold your Requiem blade.",
+  "baileys_enchantments.requiem.blade_lost": "The blade has left your hands. Your shadows return to it.",
 
   "key.categories.baileys_enchantments": "Bailey's Extended Enchantments",
   "key.baileys_enchantments.shadow_army": "Open Shadow Army",

@@ -2,6 +2,7 @@ package com.bailey.enchantments.shadow.ai;
 
 import java.util.EnumSet;
 
+import com.bailey.enchantments.shadow.ShadowAi;
 import com.bailey.enchantments.shadow.ShadowData;
 
 import net.minecraft.world.entity.LivingEntity;
@@ -49,6 +50,6 @@ public class ShadowTargetGoal extends Goal {
 
         LivingEntity current = mob.getTarget();
         LivingEntity next = ShadowTargeting.choose(mob, owner, current);
-        if (next != current) mob.setTarget(next);
+        if (next != current) ShadowAi.setTarget(mob, next);
     }
 }

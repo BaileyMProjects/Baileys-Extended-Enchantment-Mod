@@ -15,11 +15,15 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * The server half of the Shadow Army screen. Every button is a request; this is where it is
  * checked and applied, and the roster sent back so the screen shows what is true rather than
  * what it hoped.
+ *
+ * <p>The screen shows <b>the held blade's</b> army. No blade in hand, no screen.
  */
 public final class ShadowArmyMenuServer {
     private ShadowArmyMenuServer() {}
@@ -27,38 +31,40 @@ public final class ShadowArmyMenuServer {
     private static final int MAX_NAME = 24;
 
     public static void handle(ServerPlayer player, ArmyActionPayload.Action action, @Nullable UUID soldierId, String text) {
-        ShadowArmies armies = ShadowArmies.get(player.server);
-
-        if (action == ArmyActionPayload.Action.OPEN) {
-            boolean allowed = RequiemEvents.hasRequiem(player.getMainHandItem())
-                    || RequiemEvents.hasRequiem(player.getOffhandItem())
-                    || armies.has(player.getUUID());
-            if (!allowed) {
+        ItemStack blade = RequiemBlade.held(player);
+        if (blade.isEmpty()) {
+            if (action == ArmyActionPayload.Action.OPEN) {
                 player.displayClientMessage(Component.translatable("baileys_enchantments.requiem.no_weapon")
                         .withStyle(ChatFormatting.GRAY), true);
-                return;
             }
-            send(player, true);
+            return;
+        }
+        UUID armyId = RequiemBlade.bind(blade, player);
+        ShadowArmies armies = ShadowArmies.get(player.server);
+        ShadowArmy army = armies.armyOf(armyId);
+
+        if (action == ArmyActionPayload.Action.OPEN) {
+            send(player, armyId, true);
             return;
         }
 
-        ShadowArmy army = armies.armyOf(player.getUUID());
         ShadowArmy.Soldier soldier = soldierId != null ? army.find(soldierId) : null;
+        boolean held = AriseRitual.isHeld(player);
 
         switch (action) {
             case DEPLOY -> {
-                if (soldier != null && !AriseRitual.isHeld(player)) ShadowArmyManager.deploy(player, army, soldier, null, false);
+                if (soldier != null && !held) ShadowArmyManager.deploy(player, armyId, army, soldier, null, false);
             }
             case RECALL -> {
                 if (soldier != null) ShadowArmyManager.recall(player.server, army, soldier);
             }
             case RELEASE -> {
-                if (soldier != null) ShadowArmyManager.release(player.server, player.getUUID(), soldier.id);
+                if (soldier != null) ShadowArmyManager.release(player.server, armyId, soldier.id);
             }
             case DEPLOY_ALL -> {
-                if (!AriseRitual.isHeld(player)) ShadowArmyManager.deployAll(player);
+                if (!held) ShadowArmyManager.deployAll(player, armyId);
             }
-            case RECALL_ALL -> ShadowArmyManager.recallAll(player.server, player.getUUID());
+            case RECALL_ALL -> ShadowArmyManager.recallAll(player.server, armyId);
             case STANCE -> {
                 ShadowStance next = army.stance().next();
                 army.setStance(next);
@@ -71,19 +77,18 @@ public final class ShadowArmyMenuServer {
                 if (name.isEmpty() || name.length() > MAX_NAME) break;
                 soldier.name = name;
                 armies.markDirty();
-                if (ShadowArmyManager.findEntity(player.server, soldier.entityId) instanceof net.minecraft.world.entity.Mob mob) {
+                if (ShadowArmyManager.findEntity(player.server, soldier.entityId) instanceof Mob mob) {
                     ShadowArmyManager.applyName(mob, soldier);
                 }
             }
             default -> {}
         }
-        send(player, false);
+        send(player, armyId, false);
     }
 
     /** The roster as it stands. Health comes from the live body when there is one. */
-    public static void send(ServerPlayer player, boolean open) {
-        ShadowArmies armies = ShadowArmies.get(player.server);
-        ShadowArmy army = armies.armyOf(player.getUUID());
+    public static void send(ServerPlayer player, UUID armyId, boolean open) {
+        ShadowArmy army = ShadowArmies.get(player.server).armyOf(armyId);
         List<ArmyRosterPayload.Row> rows = new ArrayList<>();
         for (ShadowArmy.Soldier s : army.soldiers()) {
             float health = 0, max = 0;

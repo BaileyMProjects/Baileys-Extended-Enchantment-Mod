@@ -25,6 +25,7 @@ public final class ShadowData {
     private static final String ROOT = "BaileysShadow";
     private static final String OWNER = "Owner";
     private static final String ROSTER_ID = "RosterId";
+    private static final String ARMY_ID = "ArmyId";
     private static final String SLOTS = "Slots";
     private static final String TEMPORARY = "Temporary";
     private static final String EXPIRES = "ExpiresAt";
@@ -66,6 +67,13 @@ public final class ShadowData {
         return false;
     }
 
+    /** The army (blade) this shadow belongs to. Null for Umbra clones. */
+    @Nullable
+    public static UUID armyId(Entity entity) {
+        CompoundTag tag = entity.getPersistentData().getCompound(ROOT);
+        return tag.hasUUID(ARMY_ID) ? tag.getUUID(ARMY_ID) : null;
+    }
+
     /** The army roster entry this shadow belongs to. Null for Umbra clones. */
     @Nullable
     public static UUID rosterId(Entity entity) {
@@ -86,9 +94,10 @@ public final class ShadowData {
     }
 
     /** Mark a freshly made entity as a permanent army shadow. */
-    public static void markArmy(LivingEntity entity, UUID ownerId, UUID rosterId, int slots) {
+    public static void markArmy(LivingEntity entity, UUID ownerId, UUID armyId, UUID rosterId, int slots) {
         CompoundTag tag = new CompoundTag();
         tag.putUUID(OWNER, ownerId);
+        tag.putUUID(ARMY_ID, armyId);
         tag.putUUID(ROSTER_ID, rosterId);
         tag.putInt(SLOTS, slots);
         tag.putBoolean(TEMPORARY, false);

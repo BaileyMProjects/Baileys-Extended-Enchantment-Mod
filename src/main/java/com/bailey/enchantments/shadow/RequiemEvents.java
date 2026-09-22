@@ -3,9 +3,7 @@ package com.bailey.enchantments.shadow;
 import java.util.UUID;
 
 import com.bailey.enchantments.BaileysEnchantments;
-import com.bailey.enchantments.enchantment.ModEnchantments;
 import com.bailey.enchantments.entity.ModEntities;
-import com.bailey.enchantments.util.Ultimates;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -16,6 +14,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
@@ -23,16 +22,18 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.server.ServerLifecycleHooks;
 
 /**
  * Requiem's hooks into the world.
  *
  * <ul>
- *   <li>A kill with Requiem leaves a {@link ShadowRemnant}. Ignoring it fills nothing — a mob
- *       grinder builds no army. Only chosen kills are kept.
- *   <li>Right-click deploys the army; sneak + right-click on nothing recalls it.
- *   <li>Owner death, logout and dimension change recall it. ✅ Bailey: <i>"Owner dies or logs out
- *       the army is sent to storage."</i> A dimension change redeploys on the other side.
+ *   <li>A kill with Requiem in hand leaves a {@link ShadowRemnant}. Ignoring it fills nothing —
+ *       a mob grinder builds no army. Only chosen kills are kept.
+ *   <li>Right-click with the blade deploys its army; sneak + right-click on nothing recalls it.
+ *   <li><b>The army lives in the blade</b> ({@link RequiemBlade}). It stays out while the blade
+ *       is anywhere in the holder's inventory and returns into it the moment it is not:
+ *       dropped, chested, or lost on death. Logout and dimension change recall it too.
  *   <li>A shadow that dies in the field is struck from the roster.
  *   <li>A body that turns up with no matching roster entry is a stray, and is removed.
  * </ul>
@@ -43,8 +44,9 @@ public final class RequiemEvents {
 
     private static final int CONTROL_COOLDOWN = 20;
 
+    /** Kept for callers that only need the enchantment check. */
     public static boolean hasRequiem(ItemStack stack) {
-        return Ultimates.hasUltimate(stack, ModEnchantments.REQUIEM.get());
+        return RequiemBlade.isRequiem(stack);
     }
 
     // ---- kills ------------------------------------------------------------------------------
@@ -60,15 +62,15 @@ public final class RequiemEvents {
             return;
         }
 
-        // The owner fell: everything comes home. (And they may leave a remnant of their own.)
+        // The holder fell: the blade drops, and everything goes back into it.
         if (victim instanceof ServerPlayer player) {
-            ShadowArmyManager.recallAll(player.server, player.getUUID());
+            ShadowArmyManager.recallAllHeldBy(player.server, player.getUUID());
         }
 
         // A kill worth remembering.
         if (!(event.getSource().getEntity() instanceof ServerPlayer killer)) return;
         if (killer == victim) return;                             // no raising yourself
-        if (!hasRequiem(killer.getMainHandItem())) return;
+        if (RequiemBlade.held(killer).isEmpty()) return;
         if (ShadowData.isShadow(victim)) return;
         if (!(victim instanceof Mob) && !(victim instanceof ServerPlayer)) return;
         if (!ShadowClassifier.isRaisable(victim)) return;
@@ -91,14 +93,15 @@ public final class RequiemEvents {
         Player p = event.getEntity();
         if (p.level().isClientSide() || !(p instanceof ServerPlayer player)) return;
         ItemStack held = event.getItemStack();
-        if (!hasRequiem(held)) return;
+        if (!RequiemBlade.isRequiem(held)) return;
         if (player.getCooldowns().isOnCooldown(held.getItem())) return;
         if (AriseRitual.isHeld(player)) return;
 
         player.getCooldowns().addCooldown(held.getItem(), CONTROL_COOLDOWN);
         event.setCanceled(true);
 
-        ShadowArmy army = ShadowArmies.get(player.server).armyOf(player.getUUID());
+        UUID armyId = RequiemBlade.bind(held, player);
+        ShadowArmy army = ShadowArmies.get(player.server).armyOf(armyId);
         if (army.soldiers().isEmpty()) {
             player.displayClientMessage(Component.translatable("baileys_enchantments.requiem.none")
                     .withStyle(ChatFormatting.GRAY), true);
@@ -106,32 +109,49 @@ public final class RequiemEvents {
         }
 
         if (player.isShiftKeyDown()) {
-            int n = ShadowArmyManager.recallAll(player.server, player.getUUID());
+            int n = ShadowArmyManager.recallAll(player.server, armyId);
             player.displayClientMessage(Component.translatable("baileys_enchantments.requiem.recalled", n)
                     .withStyle(ChatFormatting.DARK_AQUA), true);
         } else {
-            int n = ShadowArmyManager.deployAll(player);
+            // Someone else holding a copy of this blade's army out? It comes home to this blade first.
+            UUID other = army.holder();
+            if (other != null && !other.equals(player.getUUID())) ShadowArmyManager.recallAll(player.server, armyId);
+            int n = ShadowArmyManager.deployAll(player, armyId);
             player.displayClientMessage(Component.translatable("baileys_enchantments.requiem.deployed", n)
                     .withStyle(ChatFormatting.DARK_AQUA), true);
         }
     }
 
-    // ---- owner lifecycle -------------------------------------------------------------------
+    // ---- the blade must stay with the holder ------------------------------------------------
+
+    /**
+     * Once a second: any army out under a player whose inventory no longer holds its blade goes
+     * back into the blade. This is the rule that makes the army the sword's, not the player's.
+     */
+    @SubscribeEvent
+    public static void onServerTick(TickEvent.ServerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        if (server == null || server.getTickCount() % 20 != 0) return;
+
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            for (UUID armyId : ShadowArmies.get(server).deployedBy(player.getUUID())) {
+                if (!RequiemBlade.carries(player, armyId)) {
+                    ShadowArmyManager.recallAll(server, armyId);
+                    player.displayClientMessage(Component.translatable("baileys_enchantments.requiem.blade_lost")
+                            .withStyle(ChatFormatting.DARK_AQUA), true);
+                }
+            }
+        }
+    }
+
+    // ---- holder lifecycle -------------------------------------------------------------------
 
     @SubscribeEvent
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
-            ShadowArmyManager.recallAll(player.server, player.getUUID());
+            ShadowArmyManager.recallAllHeldBy(player.server, player.getUUID());
             ShadowStances.forget(player.getUUID());
-        }
-    }
-
-    @SubscribeEvent
-    public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) return;
-        ShadowArmies armies = ShadowArmies.get(player.server);
-        if (armies.has(player.getUUID())) {
-            ShadowStances.set(player.getUUID(), armies.armyOf(player.getUUID()).stance());
         }
     }
 
@@ -140,11 +160,10 @@ public final class RequiemEvents {
     public static void onChangeDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         MinecraftServer server = player.server;
-        ShadowArmies armies = ShadowArmies.get(server);
-        if (!armies.has(player.getUUID())) return;
-        boolean wasOut = armies.armyOf(player.getUUID()).anyDeployed();
-        ShadowArmyManager.recallAll(server, player.getUUID());
-        if (wasOut) ShadowArmyManager.deployAll(player);
+        for (UUID armyId : ShadowArmies.get(server).deployedBy(player.getUUID())) {
+            ShadowArmyManager.recallAll(server, armyId);
+            if (RequiemBlade.carries(player, armyId)) ShadowArmyManager.deployAll(player, armyId);
+        }
     }
 
     // ---- strays ---------------------------------------------------------------------------
@@ -158,11 +177,11 @@ public final class RequiemEvents {
         if (!(event.getLevel() instanceof ServerLevel level)) return;
         if (!(event.getEntity() instanceof Mob mob) || !ShadowData.isShadow(mob)) return;
         UUID rosterId = ShadowData.rosterId(mob);
-        UUID ownerId = ShadowData.ownerId(mob);
-        if (rosterId == null || ownerId == null) return;
+        UUID armyId = ShadowData.armyId(mob);
+        if (rosterId == null) return;
 
         ShadowArmies armies = ShadowArmies.get(level.getServer());
-        ShadowArmy.Soldier s = armies.has(ownerId) ? armies.armyOf(ownerId).find(rosterId) : null;
+        ShadowArmy.Soldier s = armyId != null && armies.has(armyId) ? armies.armyOf(armyId).find(rosterId) : null;
         boolean legitimate = s != null && s.deployed && mob.getUUID().equals(s.entityId);
         if (!legitimate) {
             ShadowTeam.leave(mob);

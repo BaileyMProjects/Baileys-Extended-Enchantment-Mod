@@ -16,6 +16,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -46,12 +47,14 @@ public final class AriseRitual {
 
     private static final class Rite {
         final ServerPlayer player;
+        final UUID armyId;
         final ShadowRemnant remnant;
         final ShadowClassifier.Tier tier;
         int ticksLeft;
 
-        Rite(ServerPlayer player, ShadowRemnant remnant, ShadowClassifier.Tier tier, int ticks) {
+        Rite(ServerPlayer player, UUID armyId, ShadowRemnant remnant, ShadowClassifier.Tier tier, int ticks) {
             this.player = player;
+            this.armyId = armyId;
             this.remnant = remnant;
             this.tier = tier;
             this.ticksLeft = ticks;
@@ -79,13 +82,18 @@ public final class AriseRitual {
     // ---- entry -------------------------------------------------------------------------------
 
     public static void attempt(ServerPlayer player, ShadowRemnant remnant) {
+        // The army lives in the blade. No blade in hand, nothing to bind into.
+        ItemStack blade = RequiemBlade.held(player);
+        if (blade.isEmpty()) return;
+        UUID armyId = RequiemBlade.bind(blade, player);
+
         if (RUNNING.containsKey(player.getUUID())) {
             player.displayClientMessage(Component.translatable("baileys_enchantments.requiem.busy")
                     .withStyle(ChatFormatting.GRAY), true);
             return;
         }
 
-        ShadowArmy army = ShadowArmies.get(player.server).armyOf(player.getUUID());
+        ShadowArmy army = ShadowArmies.get(player.server).armyOf(armyId);
         int slots = remnant.slots();
         if (army.freeSlots() < slots) {
             player.displayClientMessage(Component.translatable("baileys_enchantments.requiem.no_room",
@@ -95,14 +103,14 @@ public final class AriseRitual {
 
         ShadowClassifier.Tier tier = remnant.tier();
         if (!tier.needsRitual()) {
-            succeed(player, remnant, tier);
+            succeed(player, armyId, remnant, tier);
             return;
         }
 
         int ticks = tier.cutsceneTicks();
         remnant.setRitualRunning(true);
         hold(player, ticks);
-        RUNNING.put(player.getUUID(), new Rite(player, remnant, tier, ticks));
+        RUNNING.put(player.getUUID(), new Rite(player, armyId, remnant, tier, ticks));
         cutscene.begin(player, remnant, tier, ticks);
 
         ServerLevel level = player.serverLevel();
@@ -144,15 +152,15 @@ public final class AriseRitual {
             releaseHold(player);
             boolean success = player.getRandom().nextFloat() < rite.tier.ariseChance();
             cutscene.end(player, success);
-            if (success) succeed(player, remnant, rite.tier);
+            if (success) succeed(player, rite.armyId, remnant, rite.tier);
             else fail(player, remnant);
         }
     }
 
     // ---- outcomes --------------------------------------------------------------------------------
 
-    private static void succeed(ServerPlayer player, ShadowRemnant remnant, ShadowClassifier.Tier tier) {
-        ShadowArmy.Soldier soldier = ShadowArmyManager.arise(player, remnant.snapshot(), remnant.slots(),
+    private static void succeed(ServerPlayer player, UUID armyId, ShadowRemnant remnant, ShadowClassifier.Tier tier) {
+        ShadowArmy.Soldier soldier = ShadowArmyManager.arise(player, armyId, remnant.snapshot(), remnant.slots(),
                 remnant.position(), tier != ShadowClassifier.Tier.RUNT);
         ServerLevel level = player.serverLevel();
         if (tier == ShadowClassifier.Tier.RUNT) {
@@ -160,7 +168,7 @@ public final class AriseRitual {
         }
         remnant.discard();
 
-        ShadowArmy army = ShadowArmies.get(player.server).armyOf(player.getUUID());
+        ShadowArmy army = ShadowArmies.get(player.server).armyOf(armyId);
         player.displayClientMessage(Component.translatable("baileys_enchantments.requiem.arise",
                 soldier.name, army.usedSlots(), ShadowBalance.ARMY_CAP).withStyle(ChatFormatting.DARK_AQUA), true);
     }
