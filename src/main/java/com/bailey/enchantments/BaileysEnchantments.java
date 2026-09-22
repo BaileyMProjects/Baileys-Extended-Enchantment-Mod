@@ -3,6 +3,7 @@ package com.bailey.enchantments;
 import com.bailey.enchantments.block.ModBlockEntities;
 import com.bailey.enchantments.block.ModBlocks;
 import com.bailey.enchantments.enchantment.ModEnchantments;
+import com.bailey.enchantments.entity.ModEntities;
 import com.bailey.enchantments.item.ModCreativeTabs;
 import com.bailey.enchantments.item.ModItems;
 import com.bailey.enchantments.loot.ModLootModifiers;
@@ -29,6 +30,7 @@ public class BaileysEnchantments {
         ModCreativeTabs.CREATIVE_MODE_TABS.register(modEventBus);
         ModMenuTypes.MENU_TYPES.register(modEventBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
+        ModEntities.ENTITY_TYPES.register(modEventBus);
         ModLootModifiers.LOOT_MODIFIER_SERIALIZERS.register(modEventBus);
 
         modEventBus.addListener(this::commonSetup);

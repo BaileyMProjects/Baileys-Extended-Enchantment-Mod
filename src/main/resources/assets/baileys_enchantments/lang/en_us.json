@@ -114,6 +114,19 @@
   "enchantment.baileys_enchantments.umbra.desc": "Smite VII against the undead. Kills have a chance to raise a fleeting shadow of the victim that fights for you.",
   "enchantment.baileys_enchantments.requiem.desc": "Smite VII, and Arise. Sneak-click a fallen foe's remnant to bind its shadow; right-click to deploy your army, sneak-click the air to recall it.",
 
+  "entity.baileys_enchantments.shadow_remnant": "Shadow Remnant",
+  "baileys_enchantments.requiem.remnant": "A shadow lingers: %s — %s slots, %s.",
+  "baileys_enchantments.requiem.arise": "ARISE. %s joins your shadows. (%s/%s)",
+  "baileys_enchantments.requiem.resist": "The shadow resists. %s attempts remain.",
+  "baileys_enchantments.requiem.refuse": "The shadow refuses, and fades.",
+  "baileys_enchantments.requiem.no_room": "%s needs %s slots — you have %s free.",
+  "baileys_enchantments.requiem.not_yours": "This shadow did not fall to you.",
+  "baileys_enchantments.requiem.busy": "A rite is already under way.",
+  "baileys_enchantments.requiem.none": "You have no shadows bound.",
+  "baileys_enchantments.requiem.deployed": "%s shadows answer.",
+  "baileys_enchantments.requiem.recalled": "%s shadows return to you.",
+  "baileys_enchantments.requiem.fallen": "%s has fallen.",
+
   "baileys_enchantments.configuration.title": "Bailey's Extended Enchantment Mod Configs",
   "baileys_enchantments.configuration.logOnSetup": "Log On Setup"
 }
