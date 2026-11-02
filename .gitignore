@@ -54,3 +54,7 @@ repo/
 ### tools build artefacts ###
 tools/*.class
 dist/
+
+### Brain vault ###
+# Claude's Obsidian memory vault. Local only — kept out of the public repo.
+Brain/
